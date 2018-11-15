@@ -53,8 +53,8 @@ public class Main {
 		double kP = 800;
 		double kI = 600;
 		double kD = 15;
-		double offset = 0.175;
-		double tP = 180;		
+		double offset = 0.180;
+		double tP = 130;		
 		double integral = 0;
 		double lastError = 0;
 		double derivative = 0;
@@ -89,6 +89,7 @@ public class Main {
 			double dT = System.currentTimeMillis() - initialTime;
 			integral = (1/10 * integral) + (averageError * dT);
 			derivative = averageError - lastError;
+			
 			
 			double turn = 1.0 * ((kP * averageError) + (kI * integral) + (kD * derivative));
 
