@@ -74,14 +74,8 @@ public class Main {
    
    if (getDistance() < 0.12) {
     
+	ultraStop();
     ultraTurn();
-    if (determineColor(colorSample) == "black") {
-    	Delay.msDelay(500);
-    	mC.rotateTo(0);
-    	mA.stop();
-    	mB.stop();
-    	continue;
-    }
    
    } else {
     
@@ -135,8 +129,8 @@ static void ultraStop() {
  do {
 //  Delay.msDelay(50);
   mA.startSynchronization();
-  mA.setSpeed((int)(tP * 2));
-  mB.setSpeed((int)(tP * 2));
+  mA.setSpeed((int)(tP * 1.8));
+  mB.setSpeed((int)(tP * 1.8));
   mA.forward();
   mB.backward();
   mA.endSynchronization();  
@@ -147,22 +141,18 @@ static void ultraStop() {
 }
 static void ultraTurn() {
  
- ultraStop();
- 
  do {
 
   colorProvider.fetchSample(colorSample,  0);
   mA.startSynchronization();
   
   double distance = getDistance(); 
-  double error = 0;
-  if (distance < 0.20) {
-	System.out.println("WE ARE CHANGING ERROR TO = " + error);
-	error = 5 * ((0.12 - distance) * kP);
-  }
- 
-  mA.setSpeed((int)(tP - error));
-  mB.setSpeed((int)(tP + error));
+  double error = 0.12 - distance;
+  
+  double turn = kP * error;
+  mA.setSpeed((int)(tP + turn));
+  mB.setSpeed((int)(tP - turn));
+  
   mA.forward();
   mB.forward();
   mA.endSynchronization(); 
