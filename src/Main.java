@@ -16,7 +16,7 @@ import lejos.hardware.sensor.EV3GyroSensor;
 
 public class Main {
  
- static double tP = 160;
+
  
  // Color sensor
  static EV3ColorSensor colorSensor = new EV3ColorSensor(SensorPort.S4);
@@ -35,6 +35,8 @@ public class Main {
  static double kP = 800;
  static double kI = 600;
  static double kD = 15;
+ static double initialAngle = -100;
+ static double tP = 150;
  
  public static void main(String[] args) {
   
@@ -61,6 +63,7 @@ public class Main {
   double lastError = 0;
   double derivative = 0;
   double initialTime = 0;
+//  int turnDir = -1;
   
   while(true) {
    
@@ -71,7 +74,6 @@ public class Main {
    // If the value was not reset, the integral would keep increasing in a linear fashion, and we would go to max speed on the wheels.
    colorProvider.fetchSample(colorSample, 0);
 
-   
    if (getDistance() < 0.12) {
     
 	ultraStop();
@@ -129,50 +131,65 @@ static void ultraStop() {
  do {
 //  Delay.msDelay(50);
   mA.startSynchronization();
-  mA.setSpeed((int)(tP * 1.8));
-  mB.setSpeed((int)(tP * 1.8));
+  mA.setSpeed((270));
+  mB.setSpeed((270));
   mA.forward();
   mB.backward();
   mA.endSynchronization();  
  } while (getDistance() > 0.12);
 // System.out.println("DEBUG 2");
- mC.rotateTo(-60);
+ mC.rotateTo((int)initialAngle);
  
 }
 static void ultraTurn() {
  
  do {
-
+	 
   colorProvider.fetchSample(colorSample,  0);
   mA.startSynchronization();
   
   double distance = getDistance(); 
-  
   double error = distance - 0.12;
   
-  if (error >= 0.08) {
-	  error = 0.08;
+  if (error >= 0.04) {
+	  error = 0.04;
   }
   
-  if (error <= -0.08) {
-	  error = -0.08;
+  if (error <= -0.04) {
+	  error = -0.04;
   }
   
   double turn = kP * error;
-  mA.setSpeed((int)(tP - turn));
-  mB.setSpeed((int)(tP + turn));
+  mA.setSpeed((int)(tP - (1.3 * turn)));
+  mB.setSpeed((int)(tP + (1.3* turn)));
   
   mA.forward();
   mB.forward();
-  mC.rotateTo(-60 - Math.abs((int)(2/3 * turn)));
+
+  
   mA.endSynchronization(); 
  } while (determineColor(colorSample) != "black");
  
-
- mC.rotateTo(0);
+ mA.startSynchronization();
  mA.stop();
  mB.stop();
- Delay.msDelay(1000);
+ mC.rotateTo(0);
+ mA.endSynchronization();
+
+ do {
+
+//  System.out.println("NOT SEEING WHITE");
+
+  colorProvider.fetchSample(colorSample,  0);
+  mA.startSynchronization();
+  mA.setSpeed((270));
+  mB.setSpeed((270));
+  mA.forward();
+  mB.backward();
+  mA.endSynchronization();  
+  
+ } while (determineColor(colorSample) != "white");
+ System.out.println("SAW WHITE");
  
 }
  
