@@ -136,7 +136,7 @@ static void ultraStop() {
   mA.endSynchronization();  
  } while (getDistance() > 0.12);
 // System.out.println("DEBUG 2");
- mC.rotateTo(-55);
+ mC.rotateTo(-60);
  
 }
 static void ultraTurn() {
@@ -147,14 +147,24 @@ static void ultraTurn() {
   mA.startSynchronization();
   
   double distance = getDistance(); 
-  double error = 0.12 - distance;
+  
+  double error = distance - 0.12;
+  
+  if (error >= 0.08) {
+	  error = 0.08;
+  }
+  
+  if (error <= -0.08) {
+	  error = -0.08;
+  }
   
   double turn = kP * error;
-  mA.setSpeed((int)(tP + turn));
-  mB.setSpeed((int)(tP - turn));
+  mA.setSpeed((int)(tP - turn));
+  mB.setSpeed((int)(tP + turn));
   
   mA.forward();
   mB.forward();
+  mC.rotateTo(-60 - Math.abs((int)(2/3 * turn)));
   mA.endSynchronization(); 
  } while (determineColor(colorSample) != "black");
  
@@ -162,6 +172,7 @@ static void ultraTurn() {
  mC.rotateTo(0);
  mA.stop();
  mB.stop();
+ Delay.msDelay(1000);
  
 }
  
