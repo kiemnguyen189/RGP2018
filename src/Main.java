@@ -16,8 +16,6 @@ import lejos.hardware.sensor.EV3GyroSensor;
 
 public class Main {
  
-
- 
  // Color sensor
  static EV3ColorSensor colorSensor = new EV3ColorSensor(SensorPort.S4);
  static SampleProvider colorProvider = colorSensor.getRGBMode();
@@ -32,9 +30,9 @@ public class Main {
  static RegulatedMotor mB = new EV3LargeRegulatedMotor(MotorPort.B);
  static RegulatedMotor mC = new EV3MediumRegulatedMotor(MotorPort.C);
  
- static double kP = 800;
- static double kI = 600;
- static double kD = 15;
+ static double kP = 800;	// Proportional control
+ static double kI = 600;	// Integral control
+ static double kD = 15;		// Derivative control
  static double initialAngle = -100;
  static double tP = 150;
  
@@ -57,13 +55,11 @@ public class Main {
   // Medium rotating motor
 //  RegulatedMotor mC = new EV3MediumRegulatedMotor(MotorPort.B);
   
-  
   double offset = 0.185;
   double integral = 0;
   double lastError = 0;
   double derivative = 0;
   double initialTime = 0;
-//  int turnDir = -1;
   
   while(true) {
    
@@ -74,10 +70,18 @@ public class Main {
    // If the value was not reset, the integral would keep increasing in a linear fashion, and we would go to max speed on the wheels.
    colorProvider.fetchSample(colorSample, 0);
 
-   if (getDistance() < 0.12) {
-    
-	ultraStop();
-    ultraTurn();
+   if (determineColor(colorSample) == "red") {
+
+	   mA.startSynchronization();
+	   mA.stop();
+	   mB.stop();
+	   mA.endSynchronization();
+	
+   
+   } else if (getDistance() <= 0.045) {
+	   
+	  ultraStop();
+	  ultraTurn();
    
    } else {
     
@@ -92,13 +96,12 @@ public class Main {
     double totalError = (redValue - offset) + (greenValue - offset) + (blueValue - offset);
     double averageError = totalError/3;
     
-    // || Math.abs((lastError - averageError)) > Math.abs(lastError)
     if (lastError == 0 || Math.abs((lastError - averageError)) > Math.abs(lastError)) {
      integral = 0;
     }
     
     double dT = System.currentTimeMillis() - initialTime;
-    integral = (1/10 * integral) + (averageError * dT);
+    integral = ((1/10) * integral) + (averageError * dT);
     derivative = averageError - lastError;
     
     double turn = 1.0 * ((kP * averageError) + (kI * integral) + (kD * derivative));
@@ -106,13 +109,13 @@ public class Main {
     double powerRight = tP + turn;
     
     lastError = averageError;
-//    initialTime = System.currentTimeMillis();
     
     mA.startSynchronization();
     mA.setSpeed((int)powerLeft);
     mB.setSpeed((int)powerRight);
     mA.forward();
     mB.forward();
+//    rotateHead();
     mA.endSynchronization();
     
    }
@@ -120,24 +123,22 @@ public class Main {
   }
  }
  
- 
 static void ultraStop() {
  
  mA.startSynchronization();
  mA.stop();
  mB.stop();
  mA.endSynchronization();
-// System.out.println("DEBUG 1");
+
  do {
-//  Delay.msDelay(50);
   mA.startSynchronization();
   mA.setSpeed((270));
   mB.setSpeed((270));
   mA.forward();
   mB.backward();
   mA.endSynchronization();  
- } while (getDistance() > 0.12);
-// System.out.println("DEBUG 2");
+ } while (getDistance() >= 0.045);
+
  mC.rotateTo((int)initialAngle);
  
 }
@@ -149,19 +150,19 @@ static void ultraTurn() {
   mA.startSynchronization();
   
   double distance = getDistance(); 
-  double error = distance - 0.12;
+  double error = distance - 0.045;
   
-  if (error >= 0.04) {
-	  error = 0.04;
+  if (error >= 0.245) {
+	  error = 0.245;
   }
   
-  if (error <= -0.04) {
-	  error = -0.04;
+  if (error <= -0.245) {
+	  error = -0.245;
   }
   
   double turn = kP * error;
-  mA.setSpeed((int)(tP - (1.3 * turn)));
-  mB.setSpeed((int)(tP + (1.3* turn)));
+  mA.setSpeed((int)(tP - (turn)));
+  mB.setSpeed((int)(tP + (turn)));
   
   mA.forward();
   mB.forward();
@@ -171,14 +172,14 @@ static void ultraTurn() {
  } while (determineColor(colorSample) != "black");
  
  mA.startSynchronization();
- mA.stop();
- mB.stop();
- mC.rotateTo(0);
+
+ mA.setSpeed(0);
+ mB.setSpeed(0);
  mA.endSynchronization();
+ 
+ mC.rotateTo(0);
 
  do {
-
-//  System.out.println("NOT SEEING WHITE");
 
   colorProvider.fetchSample(colorSample,  0);
   mA.startSynchronization();
@@ -189,7 +190,6 @@ static void ultraTurn() {
   mA.endSynchronization();  
   
  } while (determineColor(colorSample) != "white");
- System.out.println("SAW WHITE");
  
 }
  
@@ -200,6 +200,18 @@ static double getDistance() {
  
 }
  
+static int rotationDir = 1;
+static void rotateHead() {
+	
+	Delay.msDelay(200);
+	mC.rotateTo(40 * rotationDir);
+	if (rotationDir == 1) {
+		rotationDir = -1;
+	} else {
+		rotationDir = 1;
+	}
+	
+}
  
  
 static void runMotors(RegulatedMotor motor1, RegulatedMotor motor2, float[] sample) {
