@@ -31,37 +31,25 @@ public class Main {
  static RegulatedMotor mC = new EV3MediumRegulatedMotor(MotorPort.C);
  
  static double kP = 800;	// Proportional control
- static double kI = 600;	// Integral control
+ static double kI = 500;	// Integral control
  static double kD = 15;		// Derivative control
- static double initialAngle = -100;
- static double tP = 150;
+ static double initialAngle = -90;
+ static double tP = 160;
+ static double initialTime = 0;
+ static double lastError = 0;
+ static double offset = 0.185;
+ static double integral = 0;
+ static double derivative = 0;
+ static double setDistance = 0.05;
  
  public static void main(String[] args) {
   
   GraphicsLCD g = BrickFinder.getDefault().getGraphicsLCD();
   String s;
   
-  // First touch sensor
-//  EV3TouchSensor touchSensor1 = new EV3TouchSensor(SensorPort.S1);
-//  SensorMode touch1 = touchSensor1.getTouchMode();
-//  float[] sample1 = new float[touch1.sampleSize()];
-  
-  // Second touch sensor
-  //EV3TouchSensor touchSensor2 = new EV3TouchSensor(SensorPort.S2);
-  //SensorMode touch2 = touchSensor2.getTouchMode();
-  //float[] sample2 = new float[touch2.sampleSize()];
- 
-  
-  // Medium rotating motor
-//  RegulatedMotor mC = new EV3MediumRegulatedMotor(MotorPort.B);
-  
-  double offset = 0.185;
-  double integral = 0;
-  double lastError = 0;
-  double derivative = 0;
-  double initialTime = 0;
-  
   while(true) {
+	  
+//	  rotateHead();
    
    // Implementation of PID control.
    
@@ -77,19 +65,43 @@ public class Main {
 	   mB.stop();
 	   mA.endSynchronization();
 	
-   
-   } else if (getDistance() <= 0.045) {
+   } else if ((getDistance() <= setDistance)) {
 	   
 	  ultraStop();
 	  ultraTurn();
    
    } else {
-    
-    initialTime = System.currentTimeMillis();
-    
+	   
     mA.synchronizeWith(new RegulatedMotor[]{mB});
+//    mC.synchronizeWith(new RegulatedMotor[]{mA});
     
-    float redValue = colorSample[0];
+    double turn = turnValue();
+    double powerLeft = tP - turn;
+    double powerRight = tP + turn;
+    
+    
+    mA.startSynchronization();
+    
+    mA.setSpeed((int)powerLeft);
+    mB.setSpeed((int)powerRight);
+    mA.forward();
+    mB.forward();
+    
+    mA.endSynchronization();
+	rotateHead();
+    
+   }
+   
+  }
+}
+
+static double turnValue() {
+	
+	initialTime = System.currentTimeMillis();
+	
+	colorProvider.fetchSample(colorSample, 0);
+
+	float redValue = colorSample[0];
     float greenValue = colorSample[1];
     float blueValue = colorSample[2];
     
@@ -101,110 +113,159 @@ public class Main {
     }
     
     double dT = System.currentTimeMillis() - initialTime;
-    integral = ((1/10) * integral) + (averageError * dT);
-    derivative = averageError - lastError;
+    integral = ((1/8) * integral) + (averageError * dT);
+//    System.out.println(integral);
+    derivative = (averageError - lastError);
     
-    double turn = 1.0 * ((kP * averageError) + (kI * integral) + (kD * derivative));
-    double powerLeft = tP - turn;
-    double powerRight = tP + turn;
+    double turn = (kP * averageError) + (kI * integral) + (kD * derivative);
     
     lastError = averageError;
     
-    mA.startSynchronization();
-    mA.setSpeed((int)powerLeft);
-    mB.setSpeed((int)powerRight);
-    mA.forward();
-    mB.forward();
-//    rotateHead();
-    mA.endSynchronization();
-    
-   }
-   
-  }
- }
+    return turn;
+	
+}
+ 
  
 static void ultraStop() {
  
- mA.startSynchronization();
- mA.stop();
- mB.stop();
- mA.endSynchronization();
-
- do {
-  mA.startSynchronization();
-  mA.setSpeed((270));
-  mB.setSpeed((270));
-  mA.forward();
-  mB.backward();
-  mA.endSynchronization();  
- } while (getDistance() >= 0.045);
-
- mC.rotateTo((int)initialAngle);
- 
+	mA.startSynchronization();
+	mA.stop();
+	mB.stop();
+	mA.endSynchronization();
+	
+	do {
+		
+		mA.startSynchronization();
+		mA.setSpeed((270));
+		mB.setSpeed((270));
+		mA.forward();
+		mB.backward();
+		mA.endSynchronization();  
+		
+	} while (getDistance() >= setDistance);
+	
+	mC.rotateTo((int)initialAngle);
+	 
 }
+
 static void ultraTurn() {
  
- do {
+	 circleObject();
+ 
+	 mA.startSynchronization();
+	
+	 mA.setSpeed(0);
+	 mB.setSpeed(0);
 	 
-  colorProvider.fetchSample(colorSample,  0);
-  mA.startSynchronization();
-  
-  double distance = getDistance(); 
-  double error = distance - 0.045;
-  
-  if (error >= 0.245) {
-	  error = 0.245;
-  }
-  
-  if (error <= -0.245) {
-	  error = -0.245;
-  }
-  
-  double turn = kP * error;
-  mA.setSpeed((int)(tP - (turn)));
-  mB.setSpeed((int)(tP + (turn)));
-  
-  mA.forward();
-  mB.forward();
-
-  
-  mA.endSynchronization(); 
- } while (determineColor(colorSample) != "black");
- 
- mA.startSynchronization();
-
- mA.setSpeed(0);
- mB.setSpeed(0);
- mA.endSynchronization();
- 
- mC.rotateTo(0);
-
- do {
-
-  colorProvider.fetchSample(colorSample,  0);
-  mA.startSynchronization();
-  mA.setSpeed((270));
-  mB.setSpeed((270));
-  mA.forward();
-  mB.backward();
-  mA.endSynchronization();  
-  
- } while (determineColor(colorSample) != "white");
- 
+	 mA.endSynchronization();
+	 mC.rotateTo(0);
+	 
+	 Delay.msDelay(100);
+	 reCenter();
+	  
+// do {
+//	 
+//  colorProvider.fetchSample(colorSample,  0);
+//  mA.startSynchronization();
+//  
+//  double distance = getDistance(); 
+//  double error = distance - 0.045;
+//  
+//  if (error >= 0.245) {
+//	  error = 0.245;
+//  }
+//  
+//  if (error <= -0.245) {
+//	  error = -0.245;
+//  }
+//  
+//  double turn = kP * error;
+//  mA.setSpeed((int)(tP - (turn)));
+//  mB.setSpeed((int)(tP + (turn)));
+//  
+//  mA.forward();
+//  mB.forward();
+//
+//  
+//  mA.endSynchronization(); 
+// } while (determineColor(colorSample) != "black");
+	 
+// do {
+//
+//  colorProvider.fetchSample(colorSample,  0);
+//  mA.startSynchronization();
+//  mA.setSpeed((270));
+//  mB.setSpeed((270));
+//  mA.forward();
+//  mB.backward();
+//  mA.endSynchronization();  
+//  
+// } while (determineColor(colorSample) != "white");
+// 
 }
  
 static double getDistance() {
  
  ultraProvider.fetchSample(ultraSample, 0);
+// System.out.println(ultraSample[0]);
  return ultraSample[0];
  
 }
  
+static void circleObject() {
+	
+	do {
+		 
+	  colorProvider.fetchSample(colorSample,  0);
+	  
+	  double distance = getDistance(); 
+	  double error = distance - setDistance;
+	  
+	  if (error >= 0.25) {
+		  error = 0.25;
+	  }
+	  
+	  if (error <= -0.25) {
+		  error = -0.25;
+	  }
+	  
+	  double turn = kP * error;
+	  
+	  mA.startSynchronization();
+	  
+	  mA.setSpeed((int)(tP - (turn)));
+	  mB.setSpeed((int)(tP + (turn)));
+	  mA.forward();
+	  mB.forward();
+	  
+	  mA.endSynchronization(); 
+	  
+	} while (determineColor(colorSample) != "black");
+	
+}
+
+static void reCenter() {
+	
+	do {
+	
+		 colorProvider.fetchSample(colorSample,  0);
+		 mA.startSynchronization();
+		 mA.setSpeed((360));
+		 mB.setSpeed((360));
+		 mA.forward();
+		 mB.backward();
+		 mA.endSynchronization();  
+		  
+	} while (determineColor(colorSample) != "white");
+	 
+}
+
 static int rotationDir = 1;
 static void rotateHead() {
 	
-	Delay.msDelay(200);
-	mC.rotateTo(40 * rotationDir);
+//	Delay.msDelay(20);
+//	Delay.msDelay(20);
+	mC.rotateTo(40 * rotationDir, true);
 	if (rotationDir == 1) {
 		rotationDir = -1;
 	} else {
@@ -213,76 +274,140 @@ static void rotateHead() {
 	
 }
  
+static String determineColor(float[] sample) {
  
-static void runMotors(RegulatedMotor motor1, RegulatedMotor motor2, float[] sample) {
- // If motor is moving/not moving and red is detected, stop the motors
- // If motor is moving/not moving and black is detected, run motor.
- // If motor is running and white is detected, slow down.
- // If unknown color is found, go to a halt.
+ String color = "";
  
- motor1.synchronizeWith(new RegulatedMotor[]{motor2});
+ // ////////// VERY LARGE RANGES, MIGHT GIVE UNWANTED RESULTS //////////////
+ // RED = Red between 0.2 and 0.3, Green and blue between 0.05 / 0.06 and 0.03 and 0.04
+ // BLACK = Red between 0.055 and 0.65, Green and blue between 0.050 / 0.060 and 0.050 and 0.060
+ // WHITE = Red between 0.2 and 0.3, Green and blue between 0.2 / 0.3 and 0.2 and 0.3
+ // If not in above ranges, color is unknown. This may cause problems later if a slightly different hue of certain color is found.
+ 
  
  if (  (sample[0] > 0.200f) && (sample[0] < 0.300f)
    && (sample[1] > 0.020f) && (sample[1] < 0.060f)
    &&  (sample[2] > 0.020f) && (sample[2] < 0.060f)
   ) {
-  
-   // RED
-   motor1.startSynchronization();
-   motor1.stop();
-   motor2.stop();
-   motor1.endSynchronization();
+   color = "red";
    
   } else if ( (sample[0] > 0.020f) && (sample[0] < 0.065f)
     &&  (sample[1] > 0.020f) && (sample[1] < 0.065f)
     &&  (sample[2] > 0.020f) && (sample[2] < 0.065f)
   ) {
-   
-   // BLACK
-   motor1.startSynchronization();
-   motor1.setSpeed(18);
-   motor1.forward();
-   motor2.setSpeed(180);
-   motor2.forward();
-   motor1.endSynchronization();
+   color = "black";
    
   } else if ((sample[0] > 0.150f) && (sample[0] < 0.400f)
     &&  (sample[1] > 0.150f) && (sample[1] < 0.400f)
     &&  (sample[2] > 0.150f) && (sample[2] < 0.400f)
   ) {
+   color = "white";
    
-   // WHITE
-   motor1.startSynchronization();
-   motor1.setSpeed(180);
-   motor1.forward();
-   motor2.setSpeed(18);
-   motor2.forward();
-   motor1.endSynchronization();
-   
-  } else if ((sample[0] > 0.065f) && (sample[0] < 0.150f)
-    &&  (sample[1] > 0.065f) && (sample[1] < 0.150f)
-    &&  (sample[2] > 0.065f) && (sample[2] < 0.150f)
-   ) {
-   
-   // GREY
-   motor1.startSynchronization();
-   motor1.setSpeed(180);
-   motor1.forward();
-   motor2.setSpeed(180);
-   motor2.forward();
-   motor1.endSynchronization();
+//  } else if ((sample[0] > 0.065f) && (sample[0] < 0.150f)
+//    &&  (sample[1] > 0.065f) && (sample[1] < 0.150f)
+//    &&  (sample[2] > 0.065f) && (sample[2] < 0.150f)
+//   ) {
+//   color = "grey";
   } else {
-   
-   // UNKNOWN
-   motor1.startSynchronization();
-   motor1.setSpeed(90);
-   motor1.forward();
-   motor2.setSpeed(90);
-   motor2.forward();
-   motor1.endSynchronization();
+   color = "unknown";
   }
  
+ return color;
  
+}
+
+
+// OLD CODE MIGHT REUSE AT SOME POINT BUT NOT ATM 
+/////////////////////////////////////////////////////////////////////////////
+// Touch sensors currently not in use, as we can make the robot run without pressing a button.
+//touch1.fetchSample(sample1, 0);
+//touch2.fetchSample(sample2, 0);
+
+
+// First touch sensor
+//EV3TouchSensor touchSensor1 = new EV3TouchSensor(SensorPort.S1);
+//SensorMode touch1 = touchSensor1.getTouchMode();
+//float[] sample1 = new float[touch1.sampleSize()];
+
+// Second touch sensor
+//EV3TouchSensor touchSensor2 = new EV3TouchSensor(SensorPort.S2);
+//SensorMode touch2 = touchSensor2.getTouchMode();
+//float[] sample2 = new float[touch2.sampleSize()];
+
+
+// Medium rotating motor
+//RegulatedMotor mC = new EV3MediumRegulatedMotor(MotorPort.B);
+
+
+//static void runMotors(RegulatedMotor motor1, RegulatedMotor motor2, float[] sample) {
+// // If motor is moving/not moving and red is detected, stop the motors
+// // If motor is moving/not moving and black is detected, run motor.
+// // If motor is running and white is detected, slow down.
+// // If unknown color is found, go to a halt.
+// 
+// motor1.synchronizeWith(new RegulatedMotor[]{motor2});
+// 
+// if (  (sample[0] > 0.200f) && (sample[0] < 0.300f)
+//   && (sample[1] > 0.020f) && (sample[1] < 0.060f)
+//   &&  (sample[2] > 0.020f) && (sample[2] < 0.060f)
+//  ) {
+//  
+//   // RED
+//   motor1.startSynchronization();
+//   motor1.stop();
+//   motor2.stop();
+//   motor1.endSynchronization();
+//   
+//  } else if ( (sample[0] > 0.020f) && (sample[0] < 0.065f)
+//    &&  (sample[1] > 0.020f) && (sample[1] < 0.065f)
+//    &&  (sample[2] > 0.020f) && (sample[2] < 0.065f)
+//  ) {
+//   
+//   // BLACK
+//   motor1.startSynchronization();
+//   motor1.setSpeed(18);
+//   motor1.forward();
+//   motor2.setSpeed(180);
+//   motor2.forward();
+//   motor1.endSynchronization();
+//   
+//  } else if ((sample[0] > 0.150f) && (sample[0] < 0.400f)
+//    &&  (sample[1] > 0.150f) && (sample[1] < 0.400f)
+//    &&  (sample[2] > 0.150f) && (sample[2] < 0.400f)
+//  ) {
+//   
+//   // WHITE
+//   motor1.startSynchronization();
+//   motor1.setSpeed(180);
+//   motor1.forward();
+//   motor2.setSpeed(18);
+//   motor2.forward();
+//   motor1.endSynchronization();
+//   
+//  } else if ((sample[0] > 0.065f) && (sample[0] < 0.150f)
+//    &&  (sample[1] > 0.065f) && (sample[1] < 0.150f)
+//    &&  (sample[2] > 0.065f) && (sample[2] < 0.150f)
+//   ) {
+//   
+//   // GREY
+//   motor1.startSynchronization();
+//   motor1.setSpeed(180);
+//   motor1.forward();
+//   motor2.setSpeed(180);
+//   motor2.forward();
+//   motor1.endSynchronization();
+//  } else {
+//   
+//   // UNKNOWN
+//   motor1.startSynchronization();
+//   motor1.setSpeed(90);
+//   motor1.forward();
+//   motor2.setSpeed(90);
+//   motor2.forward();
+//   motor1.endSynchronization();
+//  }
+// 
+// 
 // if (color == "red") {
 ////  System.out.println("Found red, stopping");
 //  motor1.startSynchronization();
@@ -330,60 +455,7 @@ static void runMotors(RegulatedMotor motor1, RegulatedMotor motor2, float[] samp
 //  
 // }
   
-}
-// NOT USING ATM
-static String determineColor(float[] sample) {
- 
- String color = "";
- // ////////// VERY LARGE RANGES, MIGHT GIVE UNWANTED RESULTS //////////////
- // RED = Red between 0.2 and 0.3, Green and blue between 0.05 / 0.06 and 0.03 and 0.04
- // BLACK = Red between 0.055 and 0.65, Green and blue between 0.050 / 0.060 and 0.050 and 0.060
- // WHITE = Red between 0.2 and 0.3, Green and blue between 0.2 / 0.3 and 0.2 and 0.3
- // If not in above ranges, color is unknown. This may cause problems later if a slightly different hue of certain color is found.
- 
- 
- if (  (sample[0] > 0.200f) && (sample[0] < 0.300f)
-   && (sample[1] > 0.020f) && (sample[1] < 0.060f)
-   &&  (sample[2] > 0.020f) && (sample[2] < 0.060f)
-  ) {
-   color = "red";
-//   System.out.println("DETECTING RED");
-   
-  } else if ( (sample[0] > 0.020f) && (sample[0] < 0.065f)
-    &&  (sample[1] > 0.020f) && (sample[1] < 0.065f)
-    &&  (sample[2] > 0.020f) && (sample[2] < 0.065f)
-  ) {
-   color = "black";
-//   System.out.println("DETECTING BLACK");
-   
-  } else if ((sample[0] > 0.150f) && (sample[0] < 0.400f)
-    &&  (sample[1] > 0.150f) && (sample[1] < 0.400f)
-    &&  (sample[2] > 0.150f) && (sample[2] < 0.400f)
-  ) {
-   color = "white";
-//   System.out.println("DETECTING WHITE");
-   
-  } else if ((sample[0] > 0.065f) && (sample[0] < 0.150f)
-    &&  (sample[1] > 0.065f) && (sample[1] < 0.150f)
-    &&  (sample[2] > 0.065f) && (sample[2] < 0.150f)
-   ) {
-   color = "grey";
-//   System.out.println("DETECTING WHITE");
-  } else {
-//   System.out.println("DETECTING RGB VALUES   " + sample[0] + "/" + sample[1] + "/" + sample[2]);
-   color = "unknown";
-  }
- 
- 
- 
- return color;
-}
-
-// OLD CODE MIGHT REUSE AT SOME POINT BUT NOT ATM 
-/////////////////////////////////////////////////////////////////////////////
-// Touch sensors currently not in use, as we can make the robot run without pressing a button.
-//touch1.fetchSample(sample1, 0);
-//touch2.fetchSample(sample2, 0);
+//}
 
 //String color = determineColor(colorSample);
 
