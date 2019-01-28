@@ -63,9 +63,16 @@ public class Main {
 			t2.fetchSample(tSample2, 0);
 			cProvider.fetchSample(cSample, 0);
 			System.out.print("Test0");
+			System.out.println("");
+			System.out.println("");
+			System.out.println("");
+			System.out.println("");
+			
+			System.out.println(tSample1[0] != 0);
+			System.out.println(tSample2[0] != 0);
 
 			
-			if ((tSample1[0] != 0) && (tSample2[0] != 0)) {
+			if ((tSample1[0] != 0) || (tSample2[0] != 0)) {
 				System.out.print("Test1");
 				if ((cSample[0]) > 0.5) {
 					System.out.print("Test2");
@@ -73,15 +80,15 @@ public class Main {
 				}
 				
 				touchEnd(isRed);
-			}else {
-				Sound.twoBeeps();
+				
+			} else {
+				Sound.buzz();
 				Delay.msDelay(500);
-				Sound.twoBeeps();
+				Sound.buzz();
 			}
 			
 			Delay.msDelay(5000);
 //			break;
-			
 			
 		}
 
@@ -90,7 +97,9 @@ public class Main {
 	static private void touchEnd(boolean color) {
 		// true = red
 		// false = green
+		
 		System.out.print("Test3");
+		
 		if (color == true) {
 			Sound.beep();
 		} else {
@@ -98,6 +107,7 @@ public class Main {
 		}
 		
 		pilot.travel(-24);
+		pilot.arc(-20, 135);
 		
 	}
 	
