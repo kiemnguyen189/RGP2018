@@ -42,12 +42,12 @@ public class Main {
 	public static void main(String[] args) {
 		
 		while(true) {
-		
+			
 			pilot.setLinearSpeed(15);
-			pilot.travel(40);
+			pilot.travel(43);
 //			Delay.msDelay(1000);
 			
-			pilot.setAngularSpeed(60);
+			pilot.setAngularSpeed(45);
 			pilot.rotate(90);
 			pilot.travel(13);
 //			Delay.msDelay(1000);
@@ -55,27 +55,29 @@ public class Main {
 			pilot.arc(-15, 120);
 			pilot.arc(0, 45);
 			
-			pilot.travel(25);
-			pilot.rotate(-60);
-			pilot.travel(30);
+			pilot.travel(23);
+			pilot.rotate(-64);
+			pilot.setLinearSpeed(15);
+			pilot.travel(31);
 			
+			
+//			System.out.print("Test0");
+//			System.out.println("");
+//			System.out.println("");
+//			System.out.println("");
+//			System.out.println("");
+//			
+//			System.out.println(tSample1[0] != 0);
+//			System.out.println(tSample2[0] != 0);
+
 			t1.fetchSample(tSample1, 0);
 			t2.fetchSample(tSample2, 0);
 			cProvider.fetchSample(cSample, 0);
-			System.out.print("Test0");
-			System.out.println("");
-			System.out.println("");
-			System.out.println("");
-			System.out.println("");
-			
-			System.out.println(tSample1[0] != 0);
-			System.out.println(tSample2[0] != 0);
-
 			
 			if ((tSample1[0] != 0) || (tSample2[0] != 0)) {
 				System.out.print("Test1");
 				if ((cSample[0]) > 0.5) {
-					System.out.print("Test2");
+					System.out.print(cSample[0]);
 					isRed = true; 
 				}
 				
@@ -102,12 +104,35 @@ public class Main {
 		
 		if (color == true) {
 			Sound.beep();
+			Delay.msDelay(100);
+			
+			pilot.travel(-45);
+			pilot.rotate(-50); // MAKE 48
+			pilot.travel(59.4);
+			pilot.setAngularSpeed(40);
+			pilot.arc(-15, 135);
+			
 		} else {
 			Sound.twoBeeps();
+			Delay.msDelay(100);
+			
+			pilot.travel(-45);
+			pilot.rotate(-50);
+			pilot.travel(79.6);
+			pilot.setAngularSpeed(40);
+			pilot.arc(-15, 135);
 		}
 		
-		pilot.travel(-24);
-		pilot.arc(-20, 135);
+		
+		// BETWEEN CYLINDER AND BARRIER
+		
+		
+		// BETWEEN CYLINDERS
+//		pilot.travel(-45);
+//		pilot.rotate(-50);
+//		pilot.travel(79.6);
+//		pilot.setAngularSpeed(40);
+//		pilot.arc(-15, 135);
 		
 	}
 	
