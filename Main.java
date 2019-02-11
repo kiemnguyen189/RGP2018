@@ -133,6 +133,17 @@ public class Main {
 	}
 	
 	
+	// how to do localisation
+	// All probabilities start equal, 1/(number of grids) (let each grid be a 1.7cm x 1.7cm square)
+	// Robot is placed on line
+	// Robot takes sample from color sensor
+	// Robot moves, and depending on readings, probability of that color in array increases
+	// Probabilities are normalised, using new normalisation factor (1/total probabilities), so we have relative probabilities
+	// When one of the probabilities reaches over 0.5 / 0.6, we know where the robot is, and then we can move around the track.
+	// Robot can determine where it is depending on what probability certain color has? (yes, rhetorical question)
+	// ok im losing it safe
+	
+	
 	double[] locationProbability = new double[37];
 	Arrays.fill(locationProbability, (1/37));
 	
@@ -151,13 +162,23 @@ public class Main {
 	                                	true, true, true, false, true, true)
 	                                   ];
 	
-	// HASHMAP
 	HashMap map = new HashMap();
 	
+	// normalisation factor
+	double nFactor = 0;
 	
 	static private void localisation() {
-	
-		double nFactor = 0;
+		
+		// take sensor reading (color sensor)
+		// 
+		
+		// if blue is read, probability of blue increases in whole array
+		// if white is read, probability of white increases in whole array
+		
+		// if probability > 0.5 / 0.6, then something
+		
+		
+		
 		
 	}
 	
