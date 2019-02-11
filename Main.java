@@ -1,7 +1,16 @@
+import java.util.Arrays;
+import java.util.HashMap;
+
+import lejos.hardware.Sound;
 import lejos.hardware.motor.EV3LargeRegulatedMotor;
 import lejos.hardware.motor.Motor;
 import lejos.hardware.port.MotorPort;
+import lejos.hardware.port.SensorPort;
+import lejos.hardware.sensor.EV3ColorSensor;
+import lejos.hardware.sensor.EV3TouchSensor;
+import lejos.hardware.sensor.SensorMode;
 import lejos.robotics.RegulatedMotor;
+import lejos.robotics.SampleProvider;
 import lejos.robotics.chassis.Chassis;
 import lejos.robotics.chassis.Wheel;
 import lejos.robotics.chassis.WheeledChassis;
@@ -32,70 +41,77 @@ public class Main {
 	static MovePilot pilot = new MovePilot(chassis);
 
 	static boolean isRed = false;
+	
+	static double[] locationProbability = new double[37];
 
 	public static void main(String[] args) {
 
+		Arrays.fill(locationProbability, 1/37);
+		
 		while(true) {
 
-			pilot.setLinearSpeed(15);
-			pilot.travel(43);
-//			Delay.msDelay(1000);
-
-			pilot.setAngularSpeed(45);
-			pilot.rotate(90);
-			pilot.travel(13);
-//			Delay.msDelay(1000);
-
-			pilot.arc(-15, 120);
-			pilot.arc(0, 45);
-
-			pilot.travel(23);
-			pilot.rotate(-64);
-			pilot.setLinearSpeed(15);
-			pilot.travel(31);
-
-			t1.fetchSample(tSample1, 0);
-			t2.fetchSample(tSample2, 0);
-			cProvider.fetchSample(cSample, 0);
-
+			localise();
 			
-			System.out.print("Test0");
-			System.out.println("");
-			System.out.println("");
-			System.out.println("");
-			System.out.println("");
-
-			System.out.println(tSample1[0] != 0);
-			System.out.println(tSample2[0] != 0);
-
-			if ((tSample1[0] != 0) || (tSample2[0] != 0)) {
-
-//				System.out.print("Test1");
-
-				if ((cSample[0]) > 0.5) {
-//					System.out.print("Test2");
-					isRed = true; 
-				}
-
-				touchEnd(isRed);				
-
-			} else {
-
-				Sound.buzz();
-				Delay.msDelay(500);
-				Sound.buzz();
-
-			}
-
-			Delay.msDelay(5000);
-//			break;
-
+			
+//			pilot.setLinearSpeed(15);
+//			pilot.travel(43);
+////			Delay.msDelay(1000);
+//
+//			pilot.setAngularSpeed(45);
+//			pilot.rotate(90);
+//			pilot.travel(13);
+////			Delay.msDelay(1000);
+//
+//			pilot.arc(-15, 120);
+//			pilot.arc(0, 45);
+//
+//			pilot.travel(23);
+//			pilot.rotate(-64);
+//			pilot.setLinearSpeed(15);
+//			pilot.travel(31);
+//
+//			t1.fetchSample(tSample1, 0);
+//			t2.fetchSample(tSample2, 0);
+//			cProvider.fetchSample(cSample, 0);
+//
+//			
+//			System.out.print("Test0");
+//			System.out.println("");
+//			System.out.println("");
+//			System.out.println("");
+//			System.out.println("");
+//
+//			System.out.println(tSample1[0] != 0);
+//			System.out.println(tSample2[0] != 0);
+//
+//			if ((tSample1[0] != 0) || (tSample2[0] != 0)) {
+//
+////				System.out.print("Test1");
+//
+//				if ((cSample[0]) > 0.5) {
+////					System.out.print("Test2");
+//					isRed = true; 
+//				}
+//
+//				touchEnd(isRed);				
+//
+//			} else {
+//
+//				Sound.buzz();
+//				Delay.msDelay(500);
+//				Sound.buzz();
+//
+//			}
+//
+//			Delay.msDelay(5000);
+////			break;
+//
 		}
 
 	}
 	
 
-	static private void touchEnd(boolean color) {
+	private static void touchEnd(boolean color) {
 
 		// true = red
 		// false = green
@@ -133,7 +149,7 @@ public class Main {
 	}
 	
 	
-	// how to do localisation
+	// HOW TO DO LOCALISATION
 	// All probabilities start equal, 1/(number of grids) (let each grid be a 1.7cm x 1.7cm square)
 	// Robot is placed on line
 	// Robot takes sample from color sensor
@@ -144,45 +160,117 @@ public class Main {
 	// ok im losing it safe
 	
 	
-	double[] locationProbability = new double[37];
-	Arrays.fill(locationProbability, (1/37));
-	
 	double moveWork = 0.98;
-	double sensorWork = 0.98;
+	static double sensorWork = 0.98;
 	
 	// Blue = TRUE, White = FALSE
-	// 1 unit = 1.cm
+	// 1 unit = 1.7cm
 	// 2W, 3B, 1W, 2B, 2W, 3B, 1W, 2B, 2W, 3B, 2W, 3B, 1W, 2B, 2W, 3B, 1W, 2B
 	// 37 grids
 	
-	boolean[] colorArray = new boolean[
-	                                   (false, false, true, true, true, false, true, true, false, false, 
-	                                	true, true, true, false, true, true, false, false, true, true, true,
-	                                	false, false, true, true, true, false, true, true, false, false
-	                                	true, true, true, false, true, true)
-	                                   ];
+	static boolean[] colorArray = new boolean[] {
+		  false, false, true, true, true, false, true, true, false, false, 
+          true, true, true, false, true, true, false, false, true, true, true,
+          false, false, true, true, true, false, true, true, false, false,
+          true, true, true, false, true, true
+};
 	
 	HashMap map = new HashMap();
 	
 	// normalisation factor
-	double nFactor = 0;
+	static double nFactor = 1;
+	static boolean currentColor = false;
 	
-	static private void localisation() {
+	static double totalProbability = 1;
+	
+	private static void localise() {
 		
-		// take sensor reading (color sensor)
-		// 
+		while (maxProbability() < 0.6) {
+			
+
+			
+			// If the reading is more red, we are on a white tile (in Red mode for color sensor)
+			// If reading is less red, we are on blue (assuming for now)
+			
+			cProvider.fetchSample(cSample, 0);
+			
+			// if value is over 0.5 (DON'T KNOW WHAT VALUE YET)
+			// On track: White reads 0.6+, blue reads <0.1
+			if (cSample[0] > 0.5) {
+				
+				// we have sensed white
+				currentColor = false;
+				
+				for (int i = 0; i < 37; i++) {
+					if (currentColor == colorArray[i]) {
+						
+						// If we see same color as in color array, increase probability for all of seen color
+						locationProbability[i] = locationProbability[i] * sensorWork * nFactor; 
+						totalProbability += locationProbability[i];
+						
+					} else {
+						
+						// Else we know that we see a different color, so decrease
+						locationProbability[i] = locationProbability[i] * (1 - sensorWork) * nFactor;
+						totalProbability += locationProbability[i];
+						
+					}
+				}
+				
+			} else {
+				
+				// we have sensed blue
+				currentColor = true;
+				
+				for (int i = 0; i < 37; i++) {
+					
+					if (currentColor == colorArray[i]) {
+						
+						locationProbability[i] = locationProbability[i] * sensorWork * nFactor;
+						totalProbability += locationProbability[i];
+						
+					} else {
+
+						locationProbability[i] = locationProbability[i] * (1 - sensorWork) * nFactor;
+						totalProbability += locationProbability[i];	
+
+					}	
+				}
+			}
+			
+			
+			
+			nFactor = 1 / totalProbability;
+			
+			for (double prob : locationProbability) {
+				prob *= nFactor;
+			}
+			
+			Delay.msDelay(50);
+			pilot.setLinearSpeed(2);
+			pilot.travel(1.7);
+			
+		}
 		
-		// if blue is read, probability of blue increases in whole array
-		// if white is read, probability of white increases in whole array
+		Sound.beep();
+		System.out.println(maxProbability());
 		
-		// if probability > 0.5 / 0.6, then something
+	}
+
+
+	private static double maxProbability() {
+		double max = 0;
+		for (double prob: locationProbability) {
+			if (prob > max) {
+				max = prob;
+			}
+		}
 		
-		
-		
-		
+		return max;
 	}
 	
 }
+
 	
 //	public static void moveSquare() {
 //		
@@ -200,4 +288,4 @@ public class Main {
 //		
 //	}
 
-}
+//}
