@@ -1,3 +1,5 @@
+package RGPsem2;
+
 import java.util.Arrays;
 import java.util.HashMap;
 
@@ -46,7 +48,7 @@ public class Main {
 
 	public static void main(String[] args) {
 
-		Arrays.fill(locationProbability, 1/37);
+		Arrays.fill(locationProbability, 1/37d);
 		
 		while(true) {
 
@@ -160,8 +162,8 @@ public class Main {
 	// ok im losing it safe
 	
 	
-	double moveWork = 0.98;
-	static double sensorWork = 0.98;
+	double moveWork = 0.99;
+	static double sensorWork = 0.99;
 	
 	// Blue = TRUE, White = FALSE
 	// 1 unit = 1.7cm
@@ -185,8 +187,10 @@ public class Main {
 	
 	private static void localise() {
 		
-		while (maxProbability() < 0.6) {
+//		System.out.println(maxProbability());
+		while (maxProbability() < 0.4) {
 			
+			System.out.println(maxProbability());
 
 			
 			// If the reading is more red, we are on a white tile (in Red mode for color sensor)
@@ -196,8 +200,9 @@ public class Main {
 			
 			// if value is over 0.5 (DON'T KNOW WHAT VALUE YET)
 			// On track: White reads 0.6+, blue reads <0.1
+			
 			if (cSample[0] > 0.5) {
-				
+
 				// we have sensed white
 				currentColor = false;
 				
@@ -205,7 +210,7 @@ public class Main {
 					if (currentColor == colorArray[i]) {
 						
 						// If we see same color as in color array, increase probability for all of seen color
-						locationProbability[i] = locationProbability[i] * sensorWork * nFactor; 
+						locationProbability[i] = locationProbability[i] * sensorWork * nFactor;
 						totalProbability += locationProbability[i];
 						
 					} else {
@@ -238,31 +243,35 @@ public class Main {
 				}
 			}
 			
+//			System.out.println(totalProbability);
 			
-			
-			nFactor = 1 / totalProbability;
+			nFactor += 1 / totalProbability;
 			
 			for (double prob : locationProbability) {
-				prob *= nFactor;
+				prob *= 1 / nFactor;
 			}
 			
 			Delay.msDelay(50);
-			pilot.setLinearSpeed(2);
+			pilot.setLinearSpeed(4);
 			pilot.travel(1.7);
+			
+//			totalProbability = 1;
 			
 		}
 		
-		Sound.beep();
+		
+		Delay.msDelay(5000);
+		Sound.twoBeeps();
 		System.out.println(maxProbability());
 		
 	}
 
 
 	private static double maxProbability() {
-		double max = 0;
-		for (double prob: locationProbability) {
-			if (prob > max) {
-				max = prob;
+		double max = 1/37;
+		for (int i = 0; i < 37; i++) {
+			if (locationProbability[i] > max) {
+				max = locationProbability[i];
 			}
 		}
 		
