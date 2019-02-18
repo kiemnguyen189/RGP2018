@@ -1,5 +1,7 @@
 package RGPsem2;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 
@@ -43,17 +45,22 @@ public class Main {
 	static MovePilot pilot = new MovePilot(chassis);
 
 	static boolean isRed = false;
+	static boolean locFin = false;
 	
 	static double[] locationProbability = new double[37];
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
 
 		Arrays.fill(locationProbability, 1/37d);
 		
-		while(true) {
+		while(!locFin) {
 
 			localise();
 			
+			
+//			List<String> lines = Arrays.asList();
+//			Path file = Paths.get("arrayvals.txt");
+//			Files.write(file, lines, Charset.forName("UTF-8"));
 			
 //			pilot.setLinearSpeed(15);
 //			pilot.travel(43);
@@ -109,6 +116,8 @@ public class Main {
 ////			break;
 //
 		}
+		
+		System.out.print("Localise Finished.");
 
 	}
 	
@@ -162,8 +171,8 @@ public class Main {
 	// ok im losing it safe
 	
 	
-	double moveWork = 0.99;
-	static double sensorWork = 0.99;
+	static double moveWork = 0.9;
+	static double sensorWork = 0.9;
 	
 	// Blue = TRUE, White = FALSE
 	// 1 unit = 1.7cm
@@ -180,17 +189,28 @@ public class Main {
 	HashMap map = new HashMap();
 	
 	// normalisation factor
-	static double nFactor = 1;
+//	static double nFactor = 1;
 	static boolean currentColor = false;
 	
-	static double totalProbability = 1;
+	public static void usingFileWriter() throws IOException
+	{
+	    String fileContent = locationProbability.toString();
+	    
+	    FileWriter fileWriter = new FileWriter("C:\\Users\\KiemPC\\eclipse-workspace\\RGPsem2\\src\\RGPsem2\\array.txt");
+	    fileWriter.write(fileContent);
+	    fileWriter.close();
+	}
 	
-	private static void localise() {
+	private static void localise() throws IOException {
+		
+		double totalProbability = calcTotal();
 		
 //		System.out.println(maxProbability());
 		while (maxProbability() < 0.4) {
 			
-			System.out.println(maxProbability());
+//			System.out.printf("LP 0: %.3f %n", locationProbability[0]);
+			double max = maxProbability();
+//			System.out.printf("sMax: %.3f %n", max);
 
 			
 			// If the reading is more red, we are on a white tile (in Red mode for color sensor)
@@ -204,20 +224,24 @@ public class Main {
 			if (cSample[0] > 0.5) {
 
 				// we have sensed white
+//				System.out.println("WE SEE WHITE");
 				currentColor = false;
+//				System.out.println("WHITE PROB 0 = " + locationProbability[0]);
 				
 				for (int i = 0; i < 37; i++) {
 					if (currentColor == colorArray[i]) {
-						
+			
 						// If we see same color as in color array, increase probability for all of seen color
-						locationProbability[i] = locationProbability[i] * sensorWork * nFactor;
-						totalProbability += locationProbability[i];
+						locationProbability[i] = locationProbability[i] * sensorWork;
+//						totalProbability += locationProbability[i];
 						
-					} else {
+					} 
+					
+					else {
 						
 						// Else we know that we see a different color, so decrease
-						locationProbability[i] = locationProbability[i] * (1 - sensorWork) * nFactor;
-						totalProbability += locationProbability[i];
+						locationProbability[i] = locationProbability[i] * (1 - sensorWork);
+//						totalProbability += locationProbability[i];
 						
 					}
 				}
@@ -225,44 +249,55 @@ public class Main {
 			} else {
 				
 				// we have sensed blue
+//				System.out.println("WE SEE BLUE");
 				currentColor = true;
+//				System.out.println("BLUE PROB 0 = " + locationProbability[0]);
 				
 				for (int i = 0; i < 37; i++) {
 					
 					if (currentColor == colorArray[i]) {
 						
-						locationProbability[i] = locationProbability[i] * sensorWork * nFactor;
-						totalProbability += locationProbability[i];
+						locationProbability[i] = locationProbability[i] * sensorWork;
+//						totalProbability += locationProbability[i];
 						
-					} else {
+					} 
+					
+					else {
 
-						locationProbability[i] = locationProbability[i] * (1 - sensorWork) * nFactor;
-						totalProbability += locationProbability[i];	
+						locationProbability[i] = locationProbability[i] * (1 - sensorWork);
+//						totalProbability += locationProbability[i];	
 
 					}	
+					
 				}
 			}
 			
-//			System.out.println(totalProbability);
+//			System.out.printf("Total: %.3f %n", totalProbability);
+//			System.out.println("TOTAL PROB: " + totalProbability);
 			
-			nFactor += 1 / totalProbability;
+			totalProbability = calcTotal();
+			System.out.printf("Total: %.3f %n", totalProbability);
+
 			
 			for (double prob : locationProbability) {
-				prob *= 1 / nFactor;
+				prob *= (1 / totalProbability);
 			}
 			
-			Delay.msDelay(50);
+//			Delay.msDelay(50);
 			pilot.setLinearSpeed(4);
 			pilot.travel(1.7);
 			
-//			totalProbability = 1;
+//			for (int i = 1; i < 37; i++) {
+//				locationProbability[i] = locationProbability[i] * moveWork + locationProbability[i-1] * (1 - moveWork);
+//			}
+			
+			usingFileWriter();
+			
 			
 		}
 		
-		
-		Delay.msDelay(5000);
-		Sound.twoBeeps();
-		System.out.println(maxProbability());
+		System.out.println("MAX: " + maxProbability());
+		locFin = true;
 		
 	}
 
@@ -276,6 +311,17 @@ public class Main {
 		}
 		
 		return max;
+	}
+	
+	// calculate the total probability of every element in the barcode array
+	private static double calcTotal() {
+		double total = 0;
+		
+		for (double prob: locationProbability) {
+			total += prob;
+		}
+		
+		return total;
 	}
 	
 }
