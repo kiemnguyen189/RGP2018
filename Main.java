@@ -57,6 +57,16 @@ public class Main {
 
 			localise();
 			
+			double maxProb = maxProbability();
+//			System.out.println("MAX MAX = " + maxProb);
+//			String location = new String().indexOf(maxProb);
+		
+			int location = findIndex(maxProb);
+			System.out.println("WE ARE AT INDEX " + location);
+			
+			Delay.msDelay(5000);
+			
+			locFin = true;
 			
 //			List<String> lines = Arrays.asList();
 //			Path file = Paths.get("arrayvals.txt");
@@ -171,8 +181,8 @@ public class Main {
 	// ok im losing it safe
 	
 	
-	static double moveWork = 0.9;
-	static double sensorWork = 0.9;
+	static double moveWork = 0.99;
+	static double sensorWork = 0.99;
 	
 	// Blue = TRUE, White = FALSE
 	// 1 unit = 1.7cm
@@ -204,9 +214,12 @@ public class Main {
 	private static void localise() throws IOException {
 		
 		double totalProbability = calcTotal();
+		pilot.setLinearSpeed(4);
+
+//		System.out.println("TOTAL AT START = " + totalProbability);
 		
 //		System.out.println(maxProbability());
-		while (maxProbability() < 0.4) {
+		while (maxProbability() < 0.6) {
 			
 //			System.out.printf("LP 0: %.3f %n", locationProbability[0]);
 			double max = maxProbability();
@@ -275,35 +288,38 @@ public class Main {
 //			System.out.printf("Total: %.3f %n", totalProbability);
 //			System.out.println("TOTAL PROB: " + totalProbability);
 			
-			totalProbability = calcTotal();
-			System.out.printf("Total: %.3f %n", totalProbability);
+//			totalProbability = calcTotal();
+//			System.out.printf("T before: %.3f %n", totalProbability);
 
+			totalProbability = calcTotal();
 			
-			for (double prob : locationProbability) {
-				prob *= (1 / totalProbability);
+			for (int i = 0; i < 37; i++) {
+				locationProbability[i] = locationProbability[i] * (1 / totalProbability);
+			}
+
+//			totalProbability = calcTotal();
+//			System.out.printf("T after: %.3f %n", totalProbability);
+//			
+//			System.out.println("MAX: " + maxProbability());
+			
+			pilot.travel(1.74);
+			
+			// Shifting probabilities one movement forward
+			for (int i = 36; i > 0; i--) {
+				locationProbability[i] = locationProbability[i-1] * moveWork + locationProbability[i] * (1-moveWork);
 			}
 			
-//			Delay.msDelay(50);
-			pilot.setLinearSpeed(4);
-			pilot.travel(1.7);
-			
-//			for (int i = 1; i < 37; i++) {
-//				locationProbability[i] = locationProbability[i] * moveWork + locationProbability[i-1] * (1 - moveWork);
-//			}
-			
-			usingFileWriter();
 			
 			
 		}
+	
+		Sound.twoBeeps();
 		
-		System.out.println("MAX: " + maxProbability());
-		locFin = true;
 		
 	}
 
-
 	private static double maxProbability() {
-		double max = 1/37;
+		double max = 0;
 		for (int i = 0; i < 37; i++) {
 			if (locationProbability[i] > max) {
 				max = locationProbability[i];
@@ -313,12 +329,24 @@ public class Main {
 		return max;
 	}
 	
+	private static int findIndex(double max) {
+		int index = 0;
+		
+		for (int i = 0; i < locationProbability.length; i++) {
+			if (locationProbability[i] == max) {
+				index = i;
+			}
+		}
+		
+		return index;
+	}
+	
 	// calculate the total probability of every element in the barcode array
 	private static double calcTotal() {
 		double total = 0;
 		
-		for (double prob: locationProbability) {
-			total += prob;
+		for (int i = 0; i < 37; i++) {
+			total += locationProbability[i];
 		}
 		
 		return total;
