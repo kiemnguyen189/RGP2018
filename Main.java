@@ -47,7 +47,14 @@ public class Main {
 	static boolean isRed = false;
 	static boolean locFin = false;
 	
+	static boolean pathFin = false;
+	
 	static double[] locationProbability = new double[37];
+	
+	static private double rotate = 0;
+	
+	static int lVal = 0;
+	
 
 	public static void main(String[] args) throws IOException {
 
@@ -55,16 +62,30 @@ public class Main {
 		
 		while(!locFin) {
 
-			localise();
+			lVal = localise();
 			
 			double maxProb = maxProbability();
 //			System.out.println("MAX MAX = " + maxProb);
 //			String location = new String().indexOf(maxProb);
 		
 			int location = findIndex(maxProb);
-			System.out.println("WE ARE AT INDEX " + location);
+//			System.out.println("WE ARE AT INDEX " + location);
 			
-			Delay.msDelay(5000);
+			Delay.msDelay(2000);
+			
+			pilot.setAngularSpeed(45);
+			pilot.setLinearSpeed(10);
+			set_angle(90);
+			//pilot.rotate(90);
+			pilot.travel(20);
+			
+			set_angle(-90);
+			//pilot.rotate(-90);
+			pilot.travel(34);
+			
+			beep();
+			/*Sound.beep();
+			Delay.msDelay(2000);*/
 			
 			locFin = true;
 			
@@ -128,7 +149,28 @@ public class Main {
 		}
 		
 		System.out.print("Localise Finished.");
+		
+		
 
+	}
+	
+	private static void beep()
+	{
+		Sound.beep();
+		
+		Delay.msDelay(2000);
+	}
+	
+	private static void set_angle(int angle)
+	{
+		rotate = angle;
+		pilot.rotate(rotate);
+	}
+	
+	
+	private static void setpath()
+	{
+		
 	}
 	
 
@@ -211,7 +253,7 @@ public class Main {
 	    fileWriter.close();
 	}
 	
-	private static void localise() throws IOException {
+	private static int localise() throws IOException {
 		
 		double totalProbability = calcTotal();
 		pilot.setLinearSpeed(4);
@@ -315,6 +357,7 @@ public class Main {
 	
 		Sound.twoBeeps();
 		
+		return (int)(1.74 * maxProbability());
 		
 	}
 
