@@ -18,7 +18,10 @@ import lejos.robotics.SampleProvider;
 import lejos.robotics.chassis.Chassis;
 import lejos.robotics.chassis.Wheel;
 import lejos.robotics.chassis.WheeledChassis;
+import lejos.robotics.geometry.Point;
 import lejos.robotics.navigation.MovePilot;
+import lejos.robotics.navigation.Pose;
+import lejos.robotics.localization.OdometryPoseProvider;
 import lejos.utility.Delay;
 
 public class Main {
@@ -47,7 +50,41 @@ public class Main {
 	static boolean isRed = false;
 	static boolean locFin = false;
 	
+	static boolean pathFin = false;
+	
 	static double[] locationProbability = new double[37];
+	
+	static private double rotate = 0;
+	
+	static int lVal = 0;
+	
+	//REPULSION STUFF
+	static Point leftObs1 = new Point((float)20.5, (float)101.5);
+	static Point leftObs2 = new Point(35, 87);
+	
+	static Point rightObs1 = new Point(88, 34);
+	static Point rightObs2 = new Point(103, 19);
+	
+	static Point leftBarrier = new Point(47, 75);
+	static Point middleBarrier = new Point(61, 61);
+	static Point rightBarrier = new Point(75, 47);
+	
+	//ATTRACTION STUFF
+	static Point leftGoal1 = new Point((float)33.75, (float)88.25);
+	static Point leftGoal2 = new Point((float)27.75, (float)94.25);	
+	static Point garageGoal = new Point((float)10, (float)47);
+	static Point rightGoal1 = new Point((float)81.5, (float)40.5);
+	static Point rightGoal2 = new Point((float)95.5, (float)26.5);
+	static Point endGoal = new Point((float)112.5, (float)101.5);
+	
+	
+	//POTENTIAL FIELD CONSTANTS
+	static final int kRep = 1;
+	static final int kAtt = 1;
+	static final int qRad = 1;
+	
+	static final int obsPos = 1;
+	
 
 	public static void main(String[] args) throws IOException {
 
@@ -55,16 +92,36 @@ public class Main {
 		
 		while(!locFin) {
 
-			localise();
+			lVal = localise(); 	//returns the block the robot localises at (should be 23)
+			
+			double locCoords = 102.5 - (lVal * 1.74); // x and y coordinate
+			
+			Pose robPos = new Pose((float)locCoords, (float)locCoords, 225);
+			
+			
 			
 			double maxProb = maxProbability();
 //			System.out.println("MAX MAX = " + maxProb);
 //			String location = new String().indexOf(maxProb);
 		
 			int location = findIndex(maxProb);
-			System.out.println("WE ARE AT INDEX " + location);
+//			System.out.println("WE ARE AT INDEX " + location);
 			
-			Delay.msDelay(5000);
+			Delay.msDelay(2000);
+			
+			pilot.setAngularSpeed(45);
+			pilot.setLinearSpeed(10);
+			set_angle(90);
+			//pilot.rotate(90);
+			pilot.travel(20);
+			
+			set_angle(-90);
+			//pilot.rotate(-90);
+			pilot.travel(34);
+			
+			beep();
+			/*Sound.beep();
+			Delay.msDelay(2000);*/
 			
 			locFin = true;
 			
@@ -128,7 +185,28 @@ public class Main {
 		}
 		
 		System.out.print("Localise Finished.");
+		
+		
 
+	}
+	
+	private static void beep()
+	{
+		Sound.beep();
+		
+		Delay.msDelay(2000);
+	}
+	
+	private static void set_angle(int angle)
+	{
+		rotate = angle;
+		pilot.rotate(rotate);
+	}
+	
+	
+	private static void setpath()
+	{
+		
 	}
 	
 
@@ -211,7 +289,7 @@ public class Main {
 	    fileWriter.close();
 	}
 	
-	private static void localise() throws IOException {
+	private static int localise() throws IOException {
 		
 		double totalProbability = calcTotal();
 		pilot.setLinearSpeed(4);
@@ -315,6 +393,7 @@ public class Main {
 	
 		Sound.twoBeeps();
 		
+		return (int)(1.74 * maxProbability());
 		
 	}
 
@@ -329,6 +408,57 @@ public class Main {
 		return max;
 	}
 	
+	private static float[] calcManhat(float x1, float y1, float x2, float y2) {
+		float xDiff = x2 - x1;
+		float yDiff = y2 - y1;
+		float[] dist = new float[2];
+		dist[0] = xDiff;
+		dist[1] = yDiff;
+		return dist;
+	}
+	
+	private static float calcEuclidean(int x1, int y1, int x2, int y2) {
+		return ((x2 - x1)^2 + (y2 - y1)^2)^(1/2);
+	}
+	
+	private static float[] calcFAtt(int robX, int robY, int goalX, int goalY) {
+		int[] manhat = calcManhat(robX, robY, goalX, goalY);
+		
+		float[] attForces = new float[2];
+		
+		float forceX = kAtt * (manhat[0]);
+		float forceY = kAtt * (manhat[1]);
+		
+		attForces[0] = forceX;
+		attForces[1] = forceY;
+		
+		return attForces;
+	}
+	
+	private static float[] calcFRep(int robX, int robY, int obsX, int obsY) {
+		float[] manhat = calcManhat(obsX, obsY, robX, robY);
+		float euclid = calcEuclidean(obsX, obsY, robX, robY);
+		
+		float[] repForces = new float[2];
+		
+		float forceX = kRep * ((1 / euclid) - (1 / qRad)) * (1 / euclid^3) * (manhat[0]);
+		float forceY = kRep * ((1 / euclid) - (1 / qRad)) * (1 / euclid^3) * (manhat[1]);
+		
+		repForces[0] = forceX;
+		repForces[1] = forceY;
+		
+		return repForces;
+	}
+	
+	private static float[] calcForce(float[] att, float[] rep) {
+		float[] forces = new float[2];
+		
+		forces[0] = att[0] + rep[0];
+		forces[1] = att[1] + rep[1];
+		
+		return forces;
+	}
+
 	private static int findIndex(double max) {
 		int index = 0;
 		
