@@ -119,6 +119,7 @@ public class Obj {
 	
 	void set_goal(Obj goal) {
 		this.goal = goal;
+		this.at_goal = false;
 	}
 	
 	void add_obs(Obj o)
