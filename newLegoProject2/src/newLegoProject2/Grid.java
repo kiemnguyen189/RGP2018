@@ -41,7 +41,7 @@ public class Grid {
 	{
 		if (can_move(rob)){
 			Obj goal = rob.get_goal();
-			rob.set_angle(((int)(rob.calc_angle(goal) * (360 / (2 * Math.PI)))));
+			rob.set_angle( (rob.calc_angle(goal) * (360 / (2 * Math.PI) ))   );
 			rob.move();
 		}
 		else

@@ -66,6 +66,8 @@ public class Main {
 	
 	static final int obsPos = 1;
 	
+	static int iter_pos = 0;
+	
 	/* rob the robot */
 	static Obj rob;
 	
@@ -96,17 +98,17 @@ public class Main {
 		
 		
 		/* INIT ROB AND GRID */
-		rob = new Obj((int)init_coord, (int)init_coord, 1, null);
+		rob = new Obj((int)init_coord, 122 - (int)init_coord, 1, null);
 		goals = new ArrayList<Obj>();
 		set_goals();
 		
 		/* START RUNNING THE GRID SYSYTEM */
 		
 		/* new goal for rob */
-		Obj goal = new Obj(10, 10, 0, null);
-		rob.set_speed(3);
+		//Obj goal = new Obj(10, 10, 0, null);
+		rob.set_speed(5);
 		rob.set_angle(0);
-		rob.set_goal(goal);
+		rob.set_goal(get_goal());
 		grid = new Grid(GRID_SIZE, rob);
 		
 		Obj obs = new Obj(0, 3, 0, null);
@@ -116,10 +118,18 @@ public class Main {
 		while (!rob.at_goal() && grid.can_move(rob)) {
 			System.out.println(rob.toString());
 			System.out.println(rob.distance());
+			System.out.println("angle: " + rob.get_angle());
 			System.out.println();
 			grid.take_turn();
 			setpath();
 			Delay.msDelay(500);
+			
+			if (rob.at_goal()){
+				rob.set_goal(get_goal());
+			    System.out.println("rob at goal!");
+			}
+			else
+				System.out.println("the future, remains the same!");
 		}
 		
 		if (rob.at_goal())
@@ -135,11 +145,18 @@ public class Main {
 	private static void set_goals()
 	{	
 		/* GOAL 1 */
-		add_goal((int) 41, 81, 0);
+		add_goal((int) 41, 122-81, 0);
 		
 		/* GARAGE */
-		add_goal((int)12, (int)23.5, 0);
-		add_goal((int)12, (int)39, 0);
+		add_goal((int)12, 122 -(int)23.5, 0);
+		add_goal((int)12, 122 - (int)39, 0);
+	}
+	
+	private static Obj get_goal()
+	{
+		Obj o = goals.get(iter_pos);
+		iter_pos = (iter_pos < goals.size() -1) ? iter_pos + 1: 0;
+		return o;
 	}
 	
 	private static void add_goal(int x, int y, int radius)
@@ -153,9 +170,9 @@ public class Main {
 		Delay.msDelay(2000);
 	}
 	
-	private static void set_angle(int angle)
+	private static void set_angle(double angle)
 	{
-		rotate += angle;
+		//rotate += angle;
 		pilot.rotate(angle);
 	}
 	

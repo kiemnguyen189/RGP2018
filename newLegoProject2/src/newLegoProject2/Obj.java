@@ -12,7 +12,7 @@ public class Obj {
 	/* cords of the object on the grid */
 	private int x;
 	private int y;
-	private int angle;
+	private double angle;
 	private int speed;
 	private double distance;
 	
@@ -39,12 +39,12 @@ public class Obj {
 	    return this.radius;
 	}
 	
-	int get_angle()
+	double get_angle()
 	{
 	    return this.angle;
 	}
 	
-	void set_angle(int angle)
+	void set_angle(double angle)
 	{   
 	    if (angle > ANGLE || angle < -ANGLE)
 			    angle = angle >= 0 ?
@@ -98,7 +98,7 @@ public class Obj {
 	    int gx = goal.get_x();
 	    int s = this.speed;
 	    int dx = (gx < s) ? (s * -1): s;
-	    return this.x + dx * (this.angle / ANGLE);
+	    return this.x + dx * (int)(this.angle / ANGLE);
 	}
 	
 	int get_move_y()
@@ -127,7 +127,7 @@ public class Obj {
 			int dx = (gx < x) ? (s * -1): s;
 			int dy = (gy < y) ? (s * -1): s;
 			
-			int nx = this.x + dx * (this.angle / ANGLE);
+			int nx = this.x + dx * (int)(this.angle / ANGLE);
 			int ny = this.y + dy;
 			
 			calc_distance(nx, ny);
