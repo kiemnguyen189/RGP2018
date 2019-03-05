@@ -39,13 +39,16 @@ public class Grid {
 	
 	public void take_turn() 
 	{
-		if (can_move(rob))
+		if (can_move(rob)){
+			Obj goal = rob.get_goal();
+			rob.set_angle(((int)(rob.calc_angle(goal) * (360 / (2 * Math.PI)))));
 			rob.move();
+		}
 		else
 			System.out.println("hit wall!");
 		
-		for (Obj o: objs)
-			o.move();
+		/*for (Obj o: objs)
+			o.move();*/
 	}
 	
 	public void add_obj(Obj o) {

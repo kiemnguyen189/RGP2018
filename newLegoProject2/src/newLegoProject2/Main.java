@@ -2,6 +2,7 @@ package newLegoProject2;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
@@ -22,6 +23,8 @@ import lejos.robotics.navigation.MovePilot;
 import lejos.utility.Delay;
 
 public class Main {
+	
+	private static final int GRID_SIZE = 122;
 	
 	static RegulatedMotor motorA = new EV3LargeRegulatedMotor(MotorPort.A);
 	static RegulatedMotor motorB = new EV3LargeRegulatedMotor(MotorPort.B);
@@ -69,23 +72,22 @@ public class Main {
 	/* grid system */
 	static Grid grid;
 	
+	static ArrayList<Obj> goals;
+	
 
 	public static void main(String[] args) throws IOException {
-		
-		/* INIT ROB AND GRID */
-		rob = new Obj(0, 0, 1, null);
-		grid = new Grid(12, rob);
 
 		
 		/* BEGIN LOCALISE */
 		
 		Arrays.fill(locationProbability, 1/37d);
+		double init_coord = 0;
 		
 		while(!locFin) {
 
 			lVal = localise(); 	//returns the block the robot localises at (should be 23)
 			
-			double locCoords = 102.5 - (lVal * 1.74); // x and y coordinate
+			init_coord = 102.5 - (lVal * 1.74); // x and y coordinate
 			
 			locFin = true;
 		}
@@ -93,17 +95,19 @@ public class Main {
 		System.out.print("Localise Finished.");
 		
 		
-		
-		
+		/* INIT ROB AND GRID */
+		rob = new Obj((int)init_coord, (int)init_coord, 1, null);
+		goals = new ArrayList<Obj>();
+		set_goals();
 		
 		/* START RUNNING THE GRID SYSYTEM */
 		
 		/* new goal for rob */
 		Obj goal = new Obj(10, 10, 0, null);
-		rob.set_speed(1);
-		rob.set_angle(90);
+		rob.set_speed(3);
+		rob.set_angle(0);
 		rob.set_goal(goal);
-		grid = new Grid(12, rob);
+		grid = new Grid(GRID_SIZE, rob);
 		
 		Obj obs = new Obj(0, 3, 0, null);
 		rob.add_obs(obs);
@@ -114,6 +118,8 @@ public class Main {
 			System.out.println(rob.distance());
 			System.out.println();
 			grid.take_turn();
+			setpath();
+			Delay.msDelay(500);
 		}
 		
 		if (rob.at_goal())
@@ -121,13 +127,24 @@ public class Main {
 		else
 			System.out.println("the future, remains the same!");
 		
-		try {
-			Thread.sleep(5000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		Delay.msDelay(5000);
 
+	}
+	
+	
+	private static void set_goals()
+	{	
+		/* GOAL 1 */
+		add_goal((int) 41, 81, 0);
+		
+		/* GARAGE */
+		add_goal((int)12, (int)23.5, 0);
+		add_goal((int)12, (int)39, 0);
+	}
+	
+	private static void add_goal(int x, int y, int radius)
+	{
+		goals.add(new Obj(x, y, radius, null));
 	}
 	
 	private static void beep()
@@ -138,14 +155,16 @@ public class Main {
 	
 	private static void set_angle(int angle)
 	{
-		rotate = angle;
-		pilot.rotate(rotate);
+		rotate += angle;
+		pilot.rotate(angle);
 	}
 	
 	
 	private static void setpath()
 	{
-		
+		pilot.setLinearSpeed(rob.get_speed());
+		set_angle(rob.get_angle());
+		pilot.travel(rob.get_distance());
 	}
 	
 

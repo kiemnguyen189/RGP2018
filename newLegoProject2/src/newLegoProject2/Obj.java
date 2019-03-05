@@ -14,6 +14,7 @@ public class Obj {
 	private int y;
 	private int angle;
 	private int speed;
+	private double distance;
 	
 	/* the radius or zone of the object */
 	private int radius;
@@ -30,6 +31,7 @@ public class Obj {
 		this.angle = 0;
 		this.radius = radius;
 		this.goal = goal;
+		this.distance = 0;
 	}
 	
 	int get_radius()
@@ -49,6 +51,34 @@ public class Obj {
 			        angle % ANGLE: angle % -ANGLE;
 			        
 	    this.angle = angle;
+	}
+	
+	double calc_angle(Obj o)
+	{
+		int dx = Math.abs(get_x() - o.get_x());
+	    int dy = Math.abs(get_y() - o.get_y());
+	    
+	    return Math.atan(dy/dx);
+	}
+	
+	private void calc_distance(int nx, int ny)
+	{
+		int dx = Math.abs(get_x() - nx);
+	    int dy = Math.abs(get_y() - ny);
+	    double range = Math.sqrt((dx * dx) + (dy * dy));
+	    this.distance = range;
+	}
+	
+	double get_distance()
+	{
+		return this.distance;
+	}
+	
+	double get_object_distance(Obj o)
+	{
+		int dx = Math.abs(get_x() - o.get_x());
+	    int dy = Math.abs(get_y() - o.get_y());
+	    return Math.sqrt((dx * dx) + (dy * dy));
 	}
 	
 	boolean intersect(Obj o)
@@ -94,11 +124,15 @@ public class Obj {
 			}
 			
 			int s = this.speed;
-			int dx = (gx < s) ? (s * -1): s;
-			int dy = (gy < s) ? (s * -1): s;
+			int dx = (gx < x) ? (s * -1): s;
+			int dy = (gy < y) ? (s * -1): s;
 			
-			this.x += dx * (this.angle / ANGLE);
-			this.y += dy;
+			int nx = this.x + dx * (this.angle / ANGLE);
+			int ny = this.y + dy;
+			
+			calc_distance(nx, ny);
+			this.x = nx;
+			this.y = ny;
 		}
 	}
 	
@@ -120,6 +154,11 @@ public class Obj {
 	void set_goal(Obj goal) {
 		this.goal = goal;
 		this.at_goal = false;
+	}
+	
+	Obj get_goal()
+	{
+		return this.goal;
 	}
 	
 	void add_obs(Obj o)
