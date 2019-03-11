@@ -1,20 +1,22 @@
-package newLegoProject2;
+package RGPsem2;
 
 import java.util.ArrayList;
 
 public class Obj {
 
     /* angle relative to direction */
-    private static final int ANGLE = 90;
+    private static final int ANGLE = 360;
     
     /* if object has reached goal */
 	private boolean at_goal;
+	private boolean has_rotated = false;
 	/* cords of the object on the grid */
 	private int x;
 	private int y;
 	private double angle;
 	private int speed;
 	private double distance;
+	private int threshold = 2;
 	
 	/* the radius or zone of the object */
 	private int radius;
@@ -32,6 +34,16 @@ public class Obj {
 		this.radius = radius;
 		this.goal = goal;
 		this.distance = 0;
+	}
+	
+	boolean get_rotated()
+	{
+		return this.has_rotated;
+	}
+	
+	void set_rotated(boolean bool)
+	{
+		this.has_rotated = bool;
 	}
 	
 	int get_radius()
@@ -58,7 +70,29 @@ public class Obj {
 		int dx = Math.abs(get_x() - o.get_x());
 	    int dy = Math.abs(get_y() - o.get_y());
 	    
-	    return Math.atan(dy/dx);
+	    if (dy == 0) {
+	    	if (get_x() > o.get_x()) {
+	    		System.out.println("HELLO DY ZERO WHY NOT WORK   1");
+	    		return 180;
+	    	} else {
+	    		System.out.println("HELLO DY ZERO WHY NOT WORK   2");
+	    		return 0;
+	    	}
+	    }
+	    
+	    if (dx == 0) {
+	    	if (get_y() > o.get_y()) {
+	    		System.out.println("HELLO DX ZERO WHY NOT WORK    1");
+	    		return 270;
+	    	} else {
+	    		System.out.println("HELLO DX ZERO WHY NOT WORK    2");
+	    		return 90;
+	    	}
+	    }
+	    
+//	    System.out.println(Math.atan(dy/dx) * (360 / (2 * Math.PI)) );
+	    return Math.toDegrees(Math.abs(Math.atan(dy/dx)));
+//	    return 0;
 	}
 	
 	private void calc_distance(int nx, int ny)
@@ -74,6 +108,7 @@ public class Obj {
 		return this.distance;
 	}
 	
+	// Get the distance between two objects (e.g. robot and obstacle)
 	double get_object_distance(Obj o)
 	{
 		int dx = Math.abs(get_x() - o.get_x());
@@ -81,6 +116,7 @@ public class Obj {
 	    return Math.sqrt((dx * dx) + (dy * dy));
 	}
 	
+	// If two object radius fields intersect
 	boolean intersect(Obj o)
 	{
 	    int dx = Math.abs(o.get_x() - get_move_x());
@@ -97,8 +133,8 @@ public class Obj {
 	    
 	    int gx = goal.get_x();
 	    int s = this.speed;
-	    int dx = (gx < s) ? (s * -1): s;
-	    return this.x + dx * (int)(this.angle / ANGLE);
+	    int dx = (gx < x) ? (s * -1): s;
+	    return this.x + (int)(dx * Math.cos(this.angle));
 	}
 	
 	int get_move_y()
@@ -108,8 +144,8 @@ public class Obj {
 	    
 	    int gy = goal.get_y();
 	    int s = this.speed;
-	    int dy = (gy < s) ? (s * -1): s;
-	    return this.y + dy;
+	    int dy = (gy < y) ? (s * -1): s;
+	    return this.y + (int)(dy * Math.sin(this.angle));
 	}
 	
 	void move()
@@ -118,7 +154,7 @@ public class Obj {
 		    int gx = goal.get_x();
 		    int gy = goal.get_y();
 		
-		    if (x == gx && y == gy){
+		    if ((Math.abs(x - gx) <= threshold) && (Math.abs(y - gx) <= threshold)){
 			    at_goal = true;
 			    return;
 			}
@@ -127,8 +163,8 @@ public class Obj {
 			int dx = (gx < x) ? (s * -1): s;
 			int dy = (gy < y) ? (s * -1): s;
 			
-			int nx = this.x + dx * (int)(this.angle / ANGLE);
-			int ny = this.y + dy;
+			int nx = this.x + (int)(dx * Math.cos(this.angle));
+			int ny = this.y + (int)(dy * Math.sin(this.angle));
 			
 			calc_distance(nx, ny);
 			this.x = nx;

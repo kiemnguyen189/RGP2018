@@ -1,4 +1,4 @@
-package newLegoProject2;
+package RGPsem2;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -48,13 +48,13 @@ public class Main {
 	static MovePilot pilot = new MovePilot(chassis);
 
 	static boolean isRed = false;
-	static boolean locFin = false;
+	static boolean locFin = false;	// SET ON / OFF
 	
 	static boolean pathFin = false;
 	
 	static double[] locationProbability = new double[37];
 	
-	static private double rotate = 0;
+	static private double rotate = 135;
 	
 	static int lVal = 0;
 	
@@ -65,8 +65,8 @@ public class Main {
 	static final int qRad = 0;
 	
 	static final int obsPos = 1;
-	
 	static int iter_pos = 0;
+
 	
 	/* rob the robot */
 	static Obj rob;
@@ -105,10 +105,11 @@ public class Main {
 		/* START RUNNING THE GRID SYSYTEM */
 		
 		/* new goal for rob */
-		//Obj goal = new Obj(10, 10, 0, null);
+		Obj goal = new Obj(80, 20, 0, null);
 		rob.set_speed(5);
-		rob.set_angle(0);
-		rob.set_goal(get_goal());
+		rob.set_angle(135);
+//		rob.set_goal(get_goal());
+		rob.set_goal(goal);
 		grid = new Grid(GRID_SIZE, rob);
 		
 		Obj obs = new Obj(0, 3, 0, null);
@@ -124,12 +125,12 @@ public class Main {
 			setpath();
 			Delay.msDelay(500);
 			
-			if (rob.at_goal()){
-				rob.set_goal(get_goal());
-			    System.out.println("rob at goal!");
-			}
-			else
-				System.out.println("the future, remains the same!");
+//			if (rob.at_goal()){
+//				rob.set_goal(get_goal());
+//			    System.out.println("rob at goal!");
+//			}
+//			else
+//				System.out.println("the future, remains the same!");
 		}
 		
 		if (rob.at_goal())
@@ -172,15 +173,17 @@ public class Main {
 	
 	private static void set_angle(double angle)
 	{
-		//rotate += angle;
-		pilot.rotate(angle);
+		rotate -= angle;
+		pilot.rotate(rotate);
+		rob.set_rotated(false);
 	}
 	
 	
 	private static void setpath()
 	{
 		pilot.setLinearSpeed(rob.get_speed());
-		set_angle(rob.get_angle());
+		if (rob.get_rotated())
+			set_angle(rob.get_angle());
 		pilot.travel(rob.get_distance());
 	}
 	

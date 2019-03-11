@@ -1,4 +1,4 @@
-package newLegoProject2;
+package RGPsem2;
 
 import java.util.ArrayList;
 
@@ -22,11 +22,12 @@ public class Grid {
 	
 	public boolean can_move(Obj o)
 	{
-		if (o.get_move_x() <= scale && o.get_move_y() <= scale)
+		if ((o.get_move_x() <= scale) && (o.get_move_x() > -1) && (o.get_move_y() <= scale) && (o.get_move_y() > -1)) 
 			return true;
 		return false;
 	}
 	
+	// Checks if the next move is safe to make (i.e doesn't collide with obstacle)
 	private boolean collision()
 	{
 		for (Obj o: rob.get_obs()) {
@@ -37,11 +38,16 @@ public class Grid {
 		return false;
 	}
 	
+	// Move every object on the grid if they can move
 	public void take_turn() 
 	{
 		if (can_move(rob)){
 			Obj goal = rob.get_goal();
-			rob.set_angle( (rob.calc_angle(goal) * (360 / (2 * Math.PI) ))   );
+			double ang = (rob.calc_angle(goal));
+			if (ang != 0) {
+				rob.set_rotated(true);
+				rob.set_angle(ang);
+			}
 			rob.move();
 		}
 		else
