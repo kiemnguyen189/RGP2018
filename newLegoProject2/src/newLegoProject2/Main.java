@@ -54,7 +54,7 @@ public class Main {
 	
 	static double[] locationProbability = new double[37];
 	
-	static private double rotate = 135;
+	static private double rotation = 135;
 	
 	static int lVal = 0;
 	
@@ -89,48 +89,51 @@ public class Main {
 
 			lVal = localise(); 	//returns the block the robot localises at (should be 23)
 			
-			init_coord = 102.5 - (lVal * 1.74); // x and y coordinate
+//			init_coord = 102.5 - (lVal * 1.74); // x and y coordinate			
 			
 			locFin = true;
 		}
 		
 		System.out.print("Localise Finished.");
 		
+		double dist = lVal * 1.74;
+		double xCoord = 105 - ( Math.cos(Math.PI / 4) * dist );
+		double yCoord = 17 + ( Math.sin(Math.PI / 4) * dist );
+
 		
 		/* INIT ROB AND GRID */
-		rob = new Obj((int)init_coord, 122 - (int)init_coord, 1, null);
+		rob = new Obj((int)xCoord , (int)yCoord, 2, null);
 		goals = new ArrayList<Obj>();
-		set_goals();
 		
 		/* START RUNNING THE GRID SYSYTEM */
 		
 		/* new goal for rob */
-		Obj goal = new Obj(80, 20, 0, null);
-		rob.set_speed(5);
+		rob.set_speed(8);
 		rob.set_angle(135);
-//		rob.set_goal(get_goal());
-		rob.set_goal(goal);
 		grid = new Grid(GRID_SIZE, rob);
 		
-		Obj obs = new Obj(0, 3, 0, null);
-		rob.add_obs(obs);
-		grid.add_obj(obs);
+//		Obj obs = new Obj(0, 3, 0, null);
+//		rob.add_obs(obs);
+//		grid.add_obj(obs);
+		set_goals();
+		rob.set_goal(get_goal());
 		
-		while (!rob.at_goal() && grid.can_move(rob)) {
+		while (grid.can_move(rob)) {
 			System.out.println(rob.toString());
-			System.out.println(rob.distance());
-			System.out.println("angle: " + rob.get_angle());
+//			System.out.println(rob.distance());
+//			System.out.println("angle: " + rob.get_angle());
+			System.out.println("ROB GET X = " + rob.get_move_x());
+			System.out.println("ROB GET Y = " + rob.get_move_y());
 			System.out.println();
 			grid.take_turn();
 			setpath();
-			Delay.msDelay(500);
+//			Delay.msDelay(200);
+			if (rob.at_goal())
+				System.out.println("GOAL REACHED");
+				rob.set_goal(get_goal());
+//			Delay.msDelay(500);
 			
-//			if (rob.at_goal()){
-//				rob.set_goal(get_goal());
-//			    System.out.println("rob at goal!");
-//			}
-//			else
-//				System.out.println("the future, remains the same!");
+			
 		}
 		
 		if (rob.at_goal())
@@ -146,11 +149,11 @@ public class Main {
 	private static void set_goals()
 	{	
 		/* GOAL 1 */
-		add_goal((int) 41, 122-81, 0);
+		add_goal((int) 41, 42, 0);
 		
 		/* GARAGE */
-		add_goal((int)12, 122 -(int)23.5, 0);
-		add_goal((int)12, 122 - (int)39, 0);
+		add_goal((int)12, 70, 0);
+		add_goal((int)12,  85, 0);
 	}
 	
 	private static Obj get_goal()
@@ -173,8 +176,9 @@ public class Main {
 	
 	private static void set_angle(double angle)
 	{
-		rotate -= angle;
-		pilot.rotate(rotate);
+		double diff = (rotation - angle) % 360; 
+		rotation = angle;
+		pilot.rotate(-diff);
 		rob.set_rotated(false);
 	}
 	
@@ -371,7 +375,7 @@ public class Main {
 	
 		Sound.twoBeeps();
 		
-		return (int)(1.74 * maxProbability());
+		return findIndex(maxProbability());
 		
 	}
 

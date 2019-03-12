@@ -16,7 +16,7 @@ public class Obj {
 	private double angle;
 	private int speed;
 	private double distance;
-	private int threshold = 2;
+	private int threshold = 4;	// the range at which the robot is considered to be at the goal
 	
 	/* the radius or zone of the object */
 	private int radius;
@@ -35,6 +35,7 @@ public class Obj {
 		this.goal = goal;
 		this.distance = 0;
 	}
+	
 	
 	boolean get_rotated()
 	{
@@ -72,35 +73,41 @@ public class Obj {
 	    
 	    if (dy == 0) {
 	    	if (get_x() > o.get_x()) {
-	    		System.out.println("HELLO DY ZERO WHY NOT WORK   1");
+//	    		System.out.println("SETTING ANGLE TO 180");
 	    		return 180;
 	    	} else {
-	    		System.out.println("HELLO DY ZERO WHY NOT WORK   2");
+//	    		System.out.println("SETTING ANGLE TO 0");
 	    		return 0;
 	    	}
 	    }
 	    
 	    if (dx == 0) {
 	    	if (get_y() > o.get_y()) {
-	    		System.out.println("HELLO DX ZERO WHY NOT WORK    1");
+//	    		System.out.println("SETTING ANGLE TO 270");
 	    		return 270;
 	    	} else {
-	    		System.out.println("HELLO DX ZERO WHY NOT WORK    2");
+//	    		System.out.println("SETTING ANGLE TO 90");
 	    		return 90;
 	    	}
 	    }
 	    
+	    
 //	    System.out.println(Math.atan(dy/dx) * (360 / (2 * Math.PI)) );
-	    return Math.toDegrees(Math.abs(Math.atan(dy/dx)));
-//	    return 0;
+	    
+//	    System.out.println("DX = " + dx);
+//	    System.out.println("DY = " + dy);
+//	    System.out.println("ANGLE BETWEEN = " + Math.toDegrees((Math.atan2(dy,dx) + Math.PI/2) * 2));
+	    
+	    return Math.toDegrees((Math.atan2(dy,dx) + Math.PI/2) * 2);
+	    
 	}
 	
 	private void calc_distance(int nx, int ny)
 	{
 		int dx = Math.abs(get_x() - nx);
 	    int dy = Math.abs(get_y() - ny);
-	    double range = Math.sqrt((dx * dx) + (dy * dy));
-	    this.distance = range;
+	    double distance = Math.sqrt((dx * dx) + (dy * dy));
+	    this.distance = distance;
 	}
 	
 	double get_distance()
@@ -133,8 +140,8 @@ public class Obj {
 	    
 	    int gx = goal.get_x();
 	    int s = this.speed;
-	    int dx = (gx < x) ? (s * -1): s;
-	    return this.x + (int)(dx * Math.cos(this.angle));
+//	    int dx = (gx < x) ? (s * -1): s;
+	    return this.x + (int)(s * Math.cos(Math.toRadians(this.angle)));
 	}
 	
 	int get_move_y()
@@ -144,8 +151,8 @@ public class Obj {
 	    
 	    int gy = goal.get_y();
 	    int s = this.speed;
-	    int dy = (gy < y) ? (s * -1): s;
-	    return this.y + (int)(dy * Math.sin(this.angle));
+//	    int dy = (gy < y) ? (s * -1): s;
+	    return this.y + (int)(s * Math.sin(Math.toRadians(this.angle)));
 	}
 	
 	void move()
@@ -153,18 +160,21 @@ public class Obj {
 		if (goal != null && !at_goal) {
 		    int gx = goal.get_x();
 		    int gy = goal.get_y();
-		
-		    if ((Math.abs(x - gx) <= threshold) && (Math.abs(y - gx) <= threshold)){
+		    if ((Math.abs(gx - get_x()) <= threshold) && (Math.abs(gy - get_y()) <= threshold)) {
 			    at_goal = true;
+			    System.out.println("IM HERE");
 			    return;
 			}
 			
 			int s = this.speed;
-			int dx = (gx < x) ? (s * -1): s;
-			int dy = (gy < y) ? (s * -1): s;
+//			int dx = (gx < x) ? (s * -1): s;
+//			int dy = (gy < y) ? (s * -1): s;
 			
-			int nx = this.x + (int)(dx * Math.cos(this.angle));
-			int ny = this.y + (int)(dy * Math.sin(this.angle));
+//			int dx = s;
+//			int dy = s;
+			
+			int nx = this.x + (int)(s * Math.cos(Math.toRadians(this.angle)));
+			int ny = this.y + (int)(s * Math.sin(Math.toRadians(this.angle)));
 			
 			calc_distance(nx, ny);
 			this.x = nx;
