@@ -2,6 +2,7 @@ package RGPsem2;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
@@ -23,21 +24,18 @@ import lejos.utility.Delay;
 
 public class Main {
 	
+	private static final int GRID_SIZE = 122;
+	
 	static RegulatedMotor motorA = new EV3LargeRegulatedMotor(MotorPort.A);
 	static RegulatedMotor motorB = new EV3LargeRegulatedMotor(MotorPort.B);
-
-	static EV3TouchSensor touch1 = new EV3TouchSensor(SensorPort.S1);
-	static SensorMode t1 = touch1.getTouchMode();
-	static float[] tSample1 = new float[t1.sampleSize()];
 	
-	static EV3TouchSensor touch2 = new EV3TouchSensor(SensorPort.S2);
-	static SensorMode t2 = touch2.getTouchMode();
-	static float[] tSample2 = new float[t2.sampleSize()];
+	static EV3TouchSensor tSensor = new EV3TouchSensor(SensorPort.S2);
+	static SensorMode tProvider = tSensor.getTouchMode();
+	static float[] tSample = new float[tProvider.sampleSize()];
 
 	static EV3ColorSensor cSensor = new EV3ColorSensor(SensorPort.S4);
 	static SampleProvider cProvider = cSensor.getRedMode();
 	static float[] cSample = new float[1];
-
 	static Wheel wLeft = WheeledChassis.modelWheel(motorA, 3).offset(4.155);
 	static Wheel wRight = WheeledChassis.modelWheel(motorB, 3).offset(-4.155);
 
@@ -45,13 +43,13 @@ public class Main {
 	static MovePilot pilot = new MovePilot(chassis);
 
 	static boolean isRed = false;
-	static boolean locFin = false;
+	static boolean locFin = false;	// SET ON / OFF
 	
 	static boolean pathFin = false;
 	
 	static double[] locationProbability = new double[37];
 	
-	static private double rotate = 0;
+	static private double rotation = 135;
 	
 	static int lVal = 0;
 	
@@ -62,164 +60,228 @@ public class Main {
 	static final int qRad = 0;
 	
 	static final int obsPos = 1;
+	static int iter_pos = 0;
+
+	
+	/* rob the robot */
+	static Obj rob;
+	
+	/* grid system */
+	static Grid grid;
+	
+	static ArrayList<Obj> goals_red;
+	static ArrayList<Obj> goals_green;
 	
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) {
+		while(true)
+			try {
+				run();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+	}
+		
+		
+	static void run() throws IOException {
 
+		
+		/* BEGIN LOCALISE */
+		
 		Arrays.fill(locationProbability, 1/37d);
 		
 		while(!locFin) {
 
 			lVal = localise(); 	//returns the block the robot localises at (should be 23)
 			
-			double locCoords = 102.5 - (lVal * 1.74); // x and y coordinate
-			
-			
-			
-			double maxProb = maxProbability();
-//			System.out.println("MAX MAX = " + maxProb);
-//			String location = new String().indexOf(maxProb);
-		
-			int location = findIndex(maxProb);
-//			System.out.println("WE ARE AT INDEX " + location);
-			
-			Delay.msDelay(2000);
-			
-			pilot.setAngularSpeed(45);
-			pilot.setLinearSpeed(10);
-			set_angle(90);
-			//pilot.rotate(90);
-			pilot.travel(20);
-			
-			set_angle(-90);
-			//pilot.rotate(-90);
-			pilot.travel(34);
-			
-			beep();
-			/*Sound.beep();
-			Delay.msDelay(2000);*/
+//			init_coord = 102.5 - (lVal * 1.74); // x and y coordinate			
 			
 			locFin = true;
-			
-//			List<String> lines = Arrays.asList();
-//			Path file = Paths.get("arrayvals.txt");
-//			Files.write(file, lines, Charset.forName("UTF-8"));
-			
-//			pilot.setLinearSpeed(15);
-//			pilot.travel(43);
-////			Delay.msDelay(1000);
-//
-//			pilot.setAngularSpeed(45);
-//			pilot.rotate(90);
-//			pilot.travel(13);
-////			Delay.msDelay(1000);
-//
-//			pilot.arc(-15, 120);
-//			pilot.arc(0, 45);
-//
-//			pilot.travel(23);
-//			pilot.rotate(-64);
-//			pilot.setLinearSpeed(15);
-//			pilot.travel(31);
-//
-//			t1.fetchSample(tSample1, 0);
-//			t2.fetchSample(tSample2, 0);
-//			cProvider.fetchSample(cSample, 0);
-//
-//			
-//			System.out.print("Test0");
-//			System.out.println("");
-//			System.out.println("");
-//			System.out.println("");
-//			System.out.println("");
-//
-//			System.out.println(tSample1[0] != 0);
-//			System.out.println(tSample2[0] != 0);
-//
-//			if ((tSample1[0] != 0) || (tSample2[0] != 0)) {
-//
-////				System.out.print("Test1");
-//
-//				if ((cSample[0]) > 0.5) {
-////					System.out.print("Test2");
-//					isRed = true; 
-//				}
-//
-//				touchEnd(isRed);				
-//
-//			} else {
-//
-//				Sound.buzz();
-//				Delay.msDelay(500);
-//				Sound.buzz();
-//
-//			}
-//
-//			Delay.msDelay(5000);
-////			break;
-//
 		}
 		
 		System.out.print("Localise Finished.");
 		
-		
+		double dist = lVal * 1.74;
+		double xCoord = 105 - ( Math.cos(Math.PI / 4) * dist );
+		double yCoord = 17 + ( Math.sin(Math.PI / 4) * dist );
+		// USE LATER ON JUST USING DUMMY VALUES FOR NOW
 
+		
+		/* INIT ROB AND GRID */
+		rob = new Obj((int)xCoord , (int)yCoord, 2, null);
+		
+		ArrayList<Obj> goals;
+		goals = new ArrayList<Obj>();
+		
+		/* GOAL 1 */
+		add_goal(goals, 40, 38, 0);
+		
+		/* CLOSEST TO THE BARRIER */
+		//add_goal(goals, 40, 17, 0);
+		
+		/* OTHER ONE */
+		//add_goal(goals, 12, 42, 0);
+		
+		/* GARAGE */
+		add_goal(goals, 20, 70, 0);
+		
+		
+		/* START RUNNING THE GRID SYSYTEM */
+		
+		/* new goal for rob */
+		rob.set_speed(8);
+		rob.set_angle(135);
+		grid = new Grid(GRID_SIZE, rob);
+		
+		goals_red = new ArrayList<Obj>();
+		add_goal(goals_red, 30, 52, 0);
+		add_goal(goals_red, 90, 102, 0);
+		add_goal(goals_red, 110, 82, 0);
+		add_goal(goals_red, 90, 62, 0);
+		add_goal(goals_red, 110, 32, 0);
+		
+		goals_green = new ArrayList<Obj>();
+		add_goal(goals_green, 30, 52, 0);
+		add_goal(goals_green, 75, 84, 0);
+		add_goal(goals_green, 90, 72, 0);
+		add_goal(goals_green, 80, 62, 0);
+		add_goal(goals_green, 110, 32, 0);
+		
+		
+		if (build_path(goals)) {
+			if (touchEnd())
+				build_path(goals_red);
+			else
+				build_path(goals_green);
+		}
+		
+		
+		if (rob.at_goal())
+		    System.out.println("rob at goal!");
+		else
+			System.out.println("the future, remains the same!");
+		
+		Delay.msDelay(5000);
+
+	}
+	
+	static boolean build_path(ArrayList<Obj> path)
+	{
+		iter_pos = 0;
+		rob.set_goal(get_goal(path));
+		
+		while (grid.can_move(rob) && !rob.at_goal() && iter_pos != path.size() -1) {
+			
+			grid.take_turn();
+			setpath();
+			
+			Obj o = rob.get_goal();
+			
+			System.out.println("CURRENT GOAL = " + o.get_x() + "  " + o.get_y());
+			System.out.println("ITER POS = " + iter_pos);
+			
+			if ((Math.abs(rob.get_x() - 20) < 3) && (Math.abs(rob.get_y() - 70) < 3))
+			//if (o.get_x() == 20 && o.get_y() == 70)
+				return true;
+			
+			if (rob.at_goal()) {
+				System.out.println("GOAL REACHED");
+				rob.set_goal(get_goal(path));
+			}
+			
+		}
+		return false;
+	}
+	
+	private static Obj get_goal(ArrayList<Obj> path)
+	{
+		Obj o = path.get(iter_pos);
+		iter_pos = (iter_pos < path.size() -1) ? iter_pos + 1: 0;
+		return o;
+	}
+	
+	private static void add_goal(ArrayList<Obj> path, int x, int y, int radius)
+	{
+		path.add(new Obj(x, y, radius, null));
 	}
 	
 	private static void beep()
 	{
 		Sound.beep();
-		
 		Delay.msDelay(2000);
 	}
 	
-	private static void set_angle(int angle)
+	private static void set_angle(double angle)
 	{
-		rotate = angle;
-		pilot.rotate(rotate);
+		double diff = (rotation - angle) % 360; 
+		rotation = angle;
+		pilot.rotate(-diff);
+		rob.set_rotated(false);
 	}
 	
 	
 	private static void setpath()
 	{
-		
+		//pilot.setLinearSpeed(rob.get_speed());
+		if (rob.get_rotated())
+			set_angle(rob.get_angle());
+		pilot.travel(rob.get_distance());
 	}
 	
 
-	private static void touchEnd(boolean color) {
+	private static boolean touchEnd() {
 
 		// true = red
 		// false = green
-
-		System.out.print("Test3");
-
-		if (color == true) {
-			
-			// BETWEEN CYLINDER AND BARRIER
-			
-			Sound.beep();
-			Delay.msDelay(100);
-			
-			pilot.travel(-45);
-			pilot.rotate(-48); // MAKE 48
-			pilot.travel(59.4);
-			pilot.setAngularSpeed(40);
-			pilot.arc(-15, 135);
-			
-		} else {
-			
-			// BETWEEN CYLINDERS
-			
-			Sound.twoBeeps();
-			Delay.msDelay(100);
-			
-			pilot.travel(-45);
-			pilot.rotate(-48); // MAKE 48
-			pilot.travel(79.6);
-			pilot.setAngularSpeed(40);
-			pilot.arc(-15, 135);
-			
+		
+		pilot.rotate((90 - rotation) - 5);
+		pilot.travel(23);
+		tSensor.fetchSample(tSample, 0);
+		cSensor.fetchSample(cSample, 0);
+		
+		if (tSample[0] != 0) {
+			if (cSample[0] > 0.5) {
+				isRed = true;
+				Sound.beep();
+			} else {
+				isRed = false;
+				Sound.twoBeeps();
+			}
 		}
+		
+		pilot.travel(-23);
+		
+		//set_secondary_goals(isRed);
+		return isRed;
+		
+//		if (color == true) {
+//			
+//			// BETWEEN CYLINDER AND BARRIER
+//			
+//			Sound.beep();
+//			Delay.msDelay(100);
+//			
+//			pilot.travel(-45);
+//			pilot.rotate(-48); // MAKE 48
+//			pilot.travel(59.4);
+//			pilot.setAngularSpeed(40);
+//			pilot.arc(-15, 135);
+//			
+//		} else {
+//			
+//			// BETWEEN CYLINDERS
+//			
+//			Sound.twoBeeps();
+//			Delay.msDelay(100);
+//			
+//			pilot.travel(-45);
+//			pilot.rotate(-48); // MAKE 48
+//			pilot.travel(79.6);
+//			pilot.setAngularSpeed(40);
+//			pilot.arc(-15, 135);
+//			
+//		}
 		
 	}
 	
@@ -326,7 +388,7 @@ public class Main {
 						
 						locationProbability[i] = locationProbability[i] * sensorWork;
 //						totalProbability += locationProbability[i];
-						
+							
 					} 
 					
 					else {
@@ -369,7 +431,7 @@ public class Main {
 	
 		Sound.twoBeeps();
 		
-		return (int)(1.74 * maxProbability());
+		return findIndex(maxProbability());
 		
 	}
 
